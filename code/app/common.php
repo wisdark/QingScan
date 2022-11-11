@@ -10,19 +10,33 @@ function getRabbitMq()
     return $rabitMq;
 }
 
+function getFileType(array $fileList)
+{
+    $typeList = [];
+    foreach ($fileList as $val) {
+        $fileInfo = pathinfo($val);
+        if(!isset($fileInfo['extension'])){
+            continue;
+        }
+        $typeList[$fileInfo['extension']] = $fileInfo['extension'];
+    }
+
+    return $typeList;
+}
+
 function getGitAddr($prName, $sshUrl, $filePath, $line = "")
 {
     // 判断类型
     if (preg_match('/gitee\.com/', $sshUrl)) {   // 码云
-        $path = substr($sshUrl,strripos($sshUrl,':')+1,strlen($sshUrl));
-        $domain_name =  "https://gitee.com/{$path}";
+        $path = substr($sshUrl, strripos($sshUrl, ':') + 1, strlen($sshUrl));
+        $domain_name = "https://gitee.com/{$path}";
     } elseif (preg_match('/github\.com/', $sshUrl)) {    // github
-        $path = substr($sshUrl,strripos($sshUrl,'github.com/')+1,strlen($sshUrl));
-        $domain_name =  "https://github.com/{$path}";
+        $path = substr($sshUrl, strripos($sshUrl, 'github.com/') + 1, strlen($sshUrl));
+        $domain_name = "https://github.com/{$path}";
     }
     $zhengze = "/\/data\/codeCheck\/[a-zA-Z0-9]*\//";
     $path = preg_replace($zhengze, "/blob/master/", $filePath);
-    $url = $domain_name.$path;
+    $url = $domain_name . $path;
     if ($line != "") {
         $url .= "#L{$line}";
     }
@@ -81,24 +95,6 @@ use app\model\ConfigModel;
 use think\facade\Db;
 use think\facade\Log;
 
-
-//spl_autoload_register('my_autoloader');
-//function my_autoloader($className)
-//{
-//    $className = str_replace('\\', '/', $className);
-//    require_once "./$className.php";
-//}
-
-
-function ActionIsExists($action)
-{
-
-    if (file_exists(__APP__ . "/action/{$action}Action.php")) {
-        return true;
-    }
-
-    return false;
-}
 
 function getDirFileName($path): array
 {
@@ -242,8 +238,8 @@ function downCode($codePath, $prName, $codeUrl, $is_private = 0, $username = '',
 
 function cleanString($string)
 {
-    $string = strtolower($string);
-    $string = preg_replace("/[^a-z0-9A-Z]/i", "", $string);
+    //$string = strtolower($string);
+    $string = preg_replace("/[^a-z0-9A-Z-_]/i", "", $string);
 
     $string = empty($string) ? md5($string) : $string;
 
@@ -264,7 +260,7 @@ function addlogRaw($content)
 function systemLog($shell, $showRet = true)
 {
     //转换成字符串
-    $remark = "即将执行命令:{$shell}";
+    $remark = "即将执行命令：{$shell}";
     addlog($remark);
     //记录日志
     exec($shell, $output);
@@ -272,7 +268,6 @@ function systemLog($shell, $showRet = true)
     if ($output && $showRet) {
         echo implode("\n", $output) . PHP_EOL;
     }
-
     return $output;
 }
 
@@ -322,18 +317,6 @@ function ajaxReturn($data = null, $code = 200, $msg = '操作成功')
 }
 
 
-//统一过滤
-function I($name, $default = '')
-{
-    $value = $default;
-    if (isset($_REQUEST[$name])) {
-        $value = is_array($_REQUEST[$name]) ? $_REQUEST[$name] : addslashes($_REQUEST[$name]);
-    }
-
-    return $value;
-}
-
-
 function getClientIp()
 {
     //strcasecmp 比较两个字符，不区分大小写。返回0，>0，<0。
@@ -348,7 +331,6 @@ function getClientIp()
     } else {
         $ip = '8.8.8.8';
     }
-
 
     //正则校验IP地址
     $ip = preg_match('/[\d\.]{7,15}/', $ip, $matches) ? $matches [0] : '';
@@ -797,16 +779,16 @@ function get_ip_lookup($ip)
     if (!$result) {
         return false;
     }
-    $result = iconv("gb2312", "utf-8//IGNORE",$result);
+    $result = iconv("gb2312", "utf-8//IGNORE", $result);
     $preg = '/ip_result = {(.+?)};/';
-    preg_match($preg,$result,$content);
-    $arr = json_decode('{'.$content[1].'}',true);
-    $data['data'] =  [
-        'isp'=>$arr['ip_c_list'][0]['yunyin'],
-        'country'=>$arr['ip_c_list'][0]['ct'],
-        'region'=>$arr['ip_c_list'][0]['prov'],
-        'city'=>$arr['ip_c_list'][0]['city'],
-        'area'=>$arr['ip_c_list'][0]['area'],
+    preg_match($preg, $result, $content);
+    $arr = json_decode('{' . $content[1] . '}', true);
+    $data['data'] = [
+        'isp' => $arr['ip_c_list'][0]['yunyin'],
+        'country' => $arr['ip_c_list'][0]['ct'],
+        'region' => $arr['ip_c_list'][0]['prov'],
+        'city' => $arr['ip_c_list'][0]['city'],
+        'area' => $arr['ip_c_list'][0]['area'],
     ];
     return $data;
 }
@@ -840,22 +822,6 @@ function xmlToArray($url)
     $xml = file_get_contents($url);
     $xmlstring = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);
     return json_decode(json_encode($xmlstring), true);
-}
-
-function getPrimaryDomainName($url)
-{
-    $arr = parse_url($url);
-    if (isset($arr['path'])) {
-        $url = $arr['path'];
-    } else {
-        $url = $arr['host'];
-    }
-    $path = \think\facade\App::getRootPath() . 'vendor/jeremykendall/php-domain-parser/test_data/public_suffix_list.dat';
-    $publicSuffixList = Rules::fromPath($path);
-    $domain = Domain::fromIDNA2008($url);
-
-    $result = $publicSuffixList->resolve($domain);
-    return $result->registrableDomain()->toString();
 }
 
 function array_is_map($arr)
@@ -1038,11 +1004,11 @@ function deldir($path)
                 //排除目录中的.和..
                 if ($val != "." && $val != "..") {
                     //如果是目录则递归子目录，继续操作
-                    if (is_dir($path .'/'. $val)) {
+                    if (is_dir($path . '/' . $val)) {
                         //子目录中操作删除文件夹和文件
-                        deldir($path .'/'. $val . '/');
-                    } elseif($val == '.git'){
-                        deldir($path .'/'. $val . '/');
+                        deldir($path . '/' . $val . '/');
+                    } elseif ($val == '.git') {
+                        deldir($path . '/' . $val . '/');
                     } else {
                         //如果是文件直接删除
                         @unlink($path . '/' . $val);
@@ -1259,27 +1225,25 @@ function getProcessNum()
 
 function processSleep($time)
 {
-
     $array = debug_backtrace();
-
     $list = [];
     foreach ($array as $arrInfo) {
         if (isset($arrInfo['class'])) {
             $list[] = $arrInfo['function'];
         }
     }
-
     sleep(rand(1, 10));
     //获取最大的同时运行进程数
     $num = ConfigModel::value('maxProcesses');
     $num = empty($num) ? 4 : $num;
 
-    if (getProcessNum() < $num) {
+    if (getProcessNum() <= $num) {
         return true;
     } else {
         addlog("{$list[0]} 进程数量已到最大值 {$num},将休息30秒后运行");
         echo "{$list[0]} 进程数量已到最大值: {$num},将休息30秒后运行";
-        processSleep(60);
+        sleep($time);
+        processSleep(30);
     }
 }
 

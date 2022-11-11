@@ -3,6 +3,8 @@
 <?php
 $dengjiArr = ['Low', 'Medium', 'High', 'Critical'];
 $dengjiArrColor = ['Low' => 'secondary', 'Medium' => 'primary', 'High' => 'warning text-dark', 'Critical' => 'danger'];
+
+$fileTypeList = getFileType($fileList);
 ?>
 
 <?php
@@ -15,6 +17,7 @@ $searchArr = [
         ['type' => 'select', 'name' => 'Category', 'options' => $CategoryList, 'frist_option' => '漏洞类别'],
         ['type' => 'select', 'name' => 'code_id', 'options' => $fortifyProjectList, 'frist_option' => '项目列表'],
         ['type' => 'select', 'name' => 'Primary_filename', 'options' => $fileList, 'frist_option' => '文件筛选'],
+        ['type' => 'select', 'name' => 'filetype', 'options' => $fileTypeList, 'frist_option' => '文件后缀'],
         ['type' => 'select', 'name' => 'check_status', 'options' => $check_status_list, 'frist_option' => '审计状态', 'frist_option_value' => -1],
     ]]; ?>
 {include file='public/search' /}
@@ -54,19 +57,36 @@ $searchArr = [
                     <td>
                         <span class="badge rounded-pill bg-<?php echo $dengjiArrColor[$value['Friority']] ?>"><?php echo $value['Friority'] ?></span>
                     </td>
+                    <?php
+                        if ($projectArr[$value['code_id']]['is_online'] == 1) {
+                            $url = isset($projectArr[$value['code_id']]) ? $projectArr[$value['code_id']]['domain_name'] : '';
+                            $url .= '/';
+                            $url .= isset($value['Source']['FilePath']) ? $value['Source']['FilePath'].'#L'.$value['Source']['LineStart'] :'';
+                        } else {
+                            $url = url('get_code',['id'=>$value['id'],'type'=>1]);
+                        }
+                    ?>
                     <td title="<?php echo htmlentities($value['Source']['Snippet'] ?? '') ?>">
-                        <a href="<?php echo isset($projectArr[$value['code_id']]) ? $projectArr[$value['code_id']]['domain_name'] : '' ?>/<?php echo isset($value['Source']['FilePath']) ? $value['Source']['FilePath'].'#L'.$value['Source']['LineStart'] :'' ?>"
+                        <a href="<?php echo $url; ?>"
                            target="_blank">
-                            <?php echo $value['Source']['FileName'] ?? '' ?>
+                            <?php echo $value['Source']['FileName'] ?? '' ?>321
                         </a>
                     </td>
-                    <td title="<?php echo htmlentities($value['Primary']['Snippet']) ?>">
-                        <a href="<?php echo isset($projectArr[$value['code_id']]) ? $projectArr[$value['code_id']]['domain_name'] : '' ?>/<?php echo $value['Primary']['FilePath'].'#L'.$value['Primary']['LineStart'] ?>"
+                    <?php
+                        if ($projectArr[$value['code_id']]['is_online'] == 1) {
+                            $url = isset($projectArr[$value['code_id']]) ? $projectArr[$value['code_id']]['domain_name'] : '';
+                            $url .= '/'.$value['Primary']['FilePath'].'#L'.$value['Primary']['LineStart'];
+                        } else {
+                            $url = url('get_code',['id'=>$value['id'],'type'=>1]);
+                        }
+                    ?>
+                    <td title="<?php echo htmlentities($value['Primary']['Snippet'] ?? '') ?>">
+                        <a href="<?php echo $url; ?>"
                            target="_blank">
                             <?php echo $value['Primary']['FileName'] ?>
                         </a>
                     </td>
-                    <td><a href="<?php echo U('code_check/bug_list', ['code_id' => $value['code_id']]) ?>">
+                    <td><a href="<?php echo url('code/index', ['id' => $value['code_id']]) ?>">
                             <?php echo isset($projectArr[$value['code_id']]) ? $projectArr[$value['code_id']]['name'] : '' ?></a>
                     </td>
                     <td><?php echo $value['create_time'] ?></td>

@@ -284,22 +284,39 @@ class CodeModel extends BaseModel
 
     private static function add($data)
     {
-        Db::table(self::$tableName)->insert($data);
+        return Db::table(self::$tableName)->insertGetId($data);
     }
 
     public static function getScanNum(array $codeIds)
     {
 
         $codeIdStr = implode(',', $codeIds);
+
         $tempArr = Db::table('fortify')->whereIn('code_id', $codeIdStr)
             ->field('code_id,count(code_id) as num')
             ->group('code_id')->select()->toArray();
         $data['fortifyNum'] = array_column($tempArr, 'num', 'code_id');
 
+        /*$tempArr = Db::connect('kunlun')->table("index_scanresulttask")->whereIn('code_id', $codeIdStr)
+            ->field('code_id,count(code_id) as num')
+            ->group('code_id')->select()->toArray();
+        $data['kunlunNum'] = array_column($tempArr, 'num', 'code_id');*/
+        $data['kunlunNum'] = 0;
+
         $tempArr = Db::table('semgrep')->whereIn('code_id', $codeIdStr)
             ->field('code_id,count(code_id) as num')
             ->group('code_id')->select()->toArray();
         $data['semgrepNum'] = array_column($tempArr, 'num', 'code_id');
+
+        $tempArr = Db::table('mobsfscan')->whereIn('code_id', $codeIdStr)
+            ->field('code_id,count(code_id) as num')
+            ->group('code_id')->select()->toArray();
+        $data['mobsfscanNum'] = array_column($tempArr, 'num', 'code_id');
+
+        $tempArr = Db::table('murphysec')->whereIn('code_id', $codeIdStr)
+            ->field('code_id,count(code_id) as num')
+            ->group('code_id')->select()->toArray();
+        $data['murphysecNum'] = array_column($tempArr, 'num', 'code_id');
 
         $tempArr = Db::table('code_webshell')->whereIn('code_id', $codeIdStr)
             ->field('code_id,count(code_id) as num')
@@ -330,11 +347,11 @@ class CodeModel extends BaseModel
         $codePath = "/data/codeCheck";
         while (true) {
             processSleep(1);
-            $list = Db::name('code')->whereTime('composer_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))
-                ->where('is_delete', 0)->limit(1)->orderRand()->select()->toArray();
-
+            $where[] = ['project_type','in',[1,6]];
+            $list = self::getCodeStayScanList('composer_scan_time',$where);
             foreach ($list as $k => $v) {
-                PluginModel::addScanLog($v['id'], __METHOD__, 0, 2);
+                PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                self::scanTime('code', $v['id'], 'composer_scan_time');
 
                 $value = $v;
                 $prName = cleanString($value['name']);
@@ -350,7 +367,6 @@ class CodeModel extends BaseModel
                     continue;
                 }
 
-
                 foreach ($fileArr as $value) {
                     $json = file_get_contents($value['file']);
                     if (empty($json)) {
@@ -365,7 +381,6 @@ class CodeModel extends BaseModel
                     Db::name('code_composer')->where(['code_id' => $v['id']])->delete();
                     foreach ($packages as $val) {
                         foreach ($val as &$temp) {
-//                            $temp = is_string($temp) ? $temp : json_encode($temp, JSON_UNESCAPED_UNICODE);
                             $temp = is_string($temp) ? $temp : var_export($temp, true);
                         }
 
@@ -373,15 +388,13 @@ class CodeModel extends BaseModel
                         $val['code_id'] = $v['id'];
                         $val['create_time'] = date('Y-m-d H:i:s', time());
 
-
                         Db::name('code_composer')->insert($val);
                         addlog("composer依赖扫描数据写入成功,内容为:" . json_encode($val));
                     }
                 }
-                PluginModel::addScanLog($v['id'], __METHOD__, 1, 2);
-                self::scanTime('code', $v['id'], 'composer_scan_time');
+                PluginModel::addScanLog($v['id'], __METHOD__, 2, 1);
             }
-            sleep(10);
+            sleep(30);
         }
     }
 

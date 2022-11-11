@@ -48,34 +48,52 @@ class PluginModel extends BaseModel
         }
     }
 
-    public static function deleteDir()
+    public static function deleteCodeDir()
     {
         $codeCheck = "/data/codeCheck";
-        //1. 获取目录下的文件列表
-        $resource = opendir($codeCheck);
-        while ($file = readdir($resource)) {
-            $dirName = "{$codeCheck}/{$file}";
-            //2. 获取文件的创建时间
-            $ctime = filectime($dirName);
+        while (true) {
+            //1. 获取目录下的文件列表
+            $resource = opendir($codeCheck);
+            while ($file = readdir($resource)) {
+                if ($file == '.' || $file == '..') {
+                    continue;
+                }
+                $dirName = "{$codeCheck}/{$file}";
+                //如果目录是fortify正在扫描的目录，先不管它了
+                if ($dirName == self::getFortifyScanDir()) {
+                    continue;
+                }
+                //2. 获取文件的创建时间
+                $ctime = filectime($dirName);
 
-            //获取磁盘空间,根据剩余空间，决定代码保存时间
-            $cmd = "df -h | grep 'G' | head -n 1 | awk '{print $4}'";
-            $size = intval(exec($cmd));
-            //如果空间大于200G,那么保留72小时,否则48小时
-            $hour = ($size > 200) ? 72 : 48;
-            //如果空间小于60G,那么保留24小时
-            $hour = ($size < 60) ? 24 : $hour;
-            //如果空间小于20G,那么保留2小时
-            $hour = ($size < 20) ? 2 : $hour;
+                //获取磁盘空间,根据剩余空间，决定代码保存时间
+                $cmd = "df -h | grep 'G' | head -n 1 | awk '{print $4}'";
+                $size = intval(exec($cmd));
+                //如果空间大于200G,那么保留72小时,否则48小时
+                $hour = ($size > 200) ? 72 : 48;
+                //如果空间小于60G,那么保留24小时
+                $hour = ($size < 60) ? 24 : $hour;
+                //如果空间小于20G,那么保留2小时
+                $hour = ($size < 20) ? 2 : $hour;
 
-            echo "空间剩余 {$size} G 保留时间为 {$hour} 小时" . PHP_EOL;
-
-            //3. 如果时间超过24小时
-            if ($ctime < (time() - $hour * 3600)) {
-                //4. 删除此文件
-                unlink($dirName);
+//                echo "空间剩余 {$size} G 保留时间为 {$hour} 小时" . PHP_EOL;
+                //3. 如果时间超过24小时
+                if ($ctime < (time() - $hour * 3600)) {
+                    //4. 删除此文件
+                    echo "正在删除过期的代码文件夹 {$dirName}";
+                    $cmd = "rm -rf $dirName";
+                    systemLog($cmd);
+                }
             }
+            sleep(60);
         }
+    }
+
+    public static function getFortifyScanDir()
+    {
+        $cmd = "ps -ef | grep -v def  | awk '{print $22}' | grep '/data/codeCheck'";
+        $str = exec($cmd);
+        return $str;
     }
 
     public static function safe()
@@ -154,12 +172,12 @@ class PluginModel extends BaseModel
                 $pathCmd = empty($info['tool_path']) ? '' : "cd {$info['tool_path']} &&";
                 $cmd = "{$pathCmd}  {$cmd} ";
 
-                if (strpos($cmd, '.json')) {
+                if ($info['result_type'] == 'json') {
                     $result_path = '';
                     if (!file_exists($result_path)) {
                         addlog(["自定义工具扫描失败", $info, $v]);
                     }
-                    $content = file_get_contents($result_path);
+                    $content = json_decode(file_get_contents($result_path), true);
                     if (!$content) {
                         addlog(["自定义工具扫描结果文件内容为空", $info, $v]);
                     }
@@ -174,8 +192,7 @@ class PluginModel extends BaseModel
                             $data[] = $result;
                         }
                     }
-                    fclose($file);
-                    $content = implode("\n", $data);
+                    @unlink($result_path);
                 } else {
                     $content = systemLog($cmd, false);
                     if (empty($content)) {
@@ -191,6 +208,9 @@ class PluginModel extends BaseModel
                     'plugin_id' => $info['id'],
                     'plugin_name' => $info['name'],
                     'log_type' => 1,
+                    'is_custom' => 2,
+                    'check_status' => 0,
+                    'create_time' => date('Y-m-d H:i:s', time())
                 ];
 
                 Db::table("plugin_scan_log")->extra('IGNORE')->insert($data);
@@ -221,21 +241,21 @@ class PluginModel extends BaseModel
      * 添加扫描日志
      * @param int $appId
      * @param string $pluginName
-     * @param int $logType
-     * @param int $scanType
+     * @param int $scanType 类型 0app 1host 2code  3url
+     * @param int $logType  进度 0开始扫描   1完成   2失败
+     * @param int $isCustom 是否为自定义插件  1否   2是
      * @param array $data
      */
-    public static function addScanLog(int $appId, string $pluginName, int $logType, int $scanType = 0, array $data = [])
+    public static function addScanLog(int $appId, string $pluginName, int $scanType, int $logType = 0, $isCustom=1,array $data = [])
     {
-
         $pluginName = explode('::', $pluginName)[1] ?? 'method_error';
         $data['app_id'] = $appId;
         $data['plugin_name'] = $pluginName;
-        $data['log_type'] = $logType;
         $data['scan_type'] = $scanType;
+        $data['log_type'] = $logType;
+        $data['is_custom'] = $isCustom;
         $data['content'] = (isset($data['content']) && !is_string($data['content'])) ? var_export($data['content'], true) : '';
         $data['content'] = substr($data['content'], 0, 4999);
-
         Db::table('plugin_scan_log')->extra("IGNORE")->insert($data);
     }
 }

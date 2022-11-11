@@ -18,7 +18,7 @@ class Log extends Common
         if ($search) {
             $where[] = ['content','like',"%{$search}%"];
         }
-        $list = Db::table('log')->where($where)->order("id", 'desc')->paginate([
+        $list = Db::table('log')->where($where)->order("id", 'desc')->field('id,app,content,create_time')->paginate([
             'list_rows' => $pageSize,
             'query' => $request->param()
         ]);
@@ -30,6 +30,6 @@ class Log extends Common
     public function clear_all(){
         Db::execute('truncate table `log`');
         $this->addUserLog('日志管理','清空数据表[log]成功');
-        $this->success('日志表清空成功');
+        $this->success('日志表清空成功','index');
     }
 }

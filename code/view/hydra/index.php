@@ -17,12 +17,13 @@ $searchArr = [
         <table class="table table-bordered table-hover table-striped">
             <thead>
             <tr>
-                <th width=80>
+                <th width=70>
                     <label>
                         <input type="checkbox" value="-1" onclick="quanxuan(this)">全选
                     </label>
                 </th>
                 <th>ID</th>
+                <th>所属项目</th>
                 <th>host</th>
                 <th>type</th>
                 <th>username</th>
@@ -38,6 +39,7 @@ $searchArr = [
                         </label>
                     </td>
                     <td><?php echo $value['id'] ?></td>
+                    <td><?php echo $projectList[$value['app_id']]['name'] ?></td>
                     <td><?php echo $value['host'] ?></td>
                     <td><?php echo $value['type'] ?></td>
                     <td><?php echo $value['username'] ?></td>
@@ -57,45 +59,3 @@ $searchArr = [
 {include file='public/to_examine' /}
 {include file='public/fenye' /}
 {include file='public/footer' /}
-
-<script>
-    function quanxuan(obj){
-        var child = $('.table').find('.ids');
-        child.each(function(index, item){
-            if (obj.checked) {
-                item.checked = true
-            } else {
-                item.checked = false
-            }
-        })
-    }
-
-    function batch_del(){
-        var child = $('.table').find('.ids');
-        var ids = ''
-        child.each(function(index, item){
-            if (item.value != -1 && item.checked) {
-                if (ids == '') {
-                    ids = item.value
-                } else {
-                    ids = ids+','+item.value
-                }
-            }
-        })
-
-        $.ajax({
-            type: "post",
-            url: "<?php echo url('batch_del')?>",
-            data: {ids: ids},
-            dataType: "json",
-            success: function (data) {
-                alert(data.msg)
-                if (data.code == 1) {
-                    window.setTimeout(function () {
-                        location.reload();
-                    }, 2000)
-                }
-            }
-        });
-    }
-</script>

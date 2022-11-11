@@ -2,9 +2,6 @@
 
 namespace app\controller;
 
-use app\BaseController;
-use app\model\AppModel;
-use app\model\HostModel;
 use app\model\UrlsModel;
 use app\Request;
 use think\facade\Db;
@@ -18,7 +15,7 @@ class Host extends Common
     {
         $pageSize = 20;
         $where[] = ['is_delete','=',0];
-        $domain = getParam('domain');
+        $domain = $request->param('domain');
         if ($domain) {
             $where[] = ['domain','=',$domain];
         }
@@ -35,9 +32,7 @@ class Host extends Common
         ]);
         $data['list'] = $list->items();
         $data['page'] = $list->render();
-
-        $data['appArr'] = AppModel::getAppName();
-
+        $data['projectList'] = $this->getMyAppList();
         return View::fetch('index', $data);
     }
 
@@ -68,5 +63,4 @@ class Host extends Common
         }
         UrlsModel::addData($_POST);
     }
-
 }

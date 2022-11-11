@@ -13,6 +13,7 @@ $searchArr = [
         ['type' => 'select', 'name' => 'Folder', 'options' => $dengjiArr, 'frist_option' => '危险等级'],
         ['type' => 'select', 'name' => 'Category', 'options' => $CategoryList, 'frist_option' => '漏洞类别'],
         ['type' => 'select', 'name' => 'Primary_filename', 'options' => $fileList, 'frist_option' => 'url筛选'],
+        ['type' => 'select', 'name' => 'app_id', 'options' => $projectList, 'frist_option' => '项目列表'],
         ['type' => 'select', 'name' => 'check_status', 'options' => $check_status_list, 'frist_option' => '审计状态','frist_option_velue'=>-1],
     ]];
 ?>
@@ -24,12 +25,13 @@ $searchArr = [
         <table class="table table-bordered table-hover table-striped">
             <thead>
             <tr>
-                <th>
+                <th width="70">
                     <label>
                         <input type="checkbox" value="-1" onclick="quanxuan(this)">全选
                     </label>
                 </th>
                 <th>ID</th>
+                <th>所属项目</th>
                 <th>severity</th>
                 <th>URL</th>
                 <th>发现时间</th>
@@ -45,6 +47,7 @@ $searchArr = [
                         </label>
                     </td>
                     <td><?php echo $value['id'] ?></td>
+                    <td><?php echo isset($projectList[$value['app_id']]) ? $projectList[$value['app_id']] : '' ?></td>
                     <td><?php echo $value['vt_name'] ?></td>
                     <td><?php echo $value['affects_url'] ?></td>
                     <td><?php echo $value['create_time'] ?></td>
@@ -66,49 +69,8 @@ $searchArr = [
 </div>
 
 <input type="hidden" id="to_examine_url" value="<?php echo url('to_examine/awvs')?>">
+<input type="hidden" id="batch_del_url" value="<?php echo url('awvs_batch_del')?>">
 
 {include file='public/to_examine' /}
 {include file='public/fenye' /}
 {include file='public/footer' /}
-
-<script>
-    function quanxuan(obj){
-        var child = $('.table').find('.ids');
-        child.each(function(index, item){
-            if (obj.checked) {
-                item.checked = true
-            } else {
-                item.checked = false
-            }
-        })
-    }
-
-    function batch_del(){
-        var child = $('.table').find('.ids');
-        var ids = ''
-        child.each(function(index, item){
-            if (item.value != -1 && item.checked) {
-                if (ids == '') {
-                    ids = item.value
-                } else {
-                    ids = ids+','+item.value
-                }
-            }
-        })
-
-        $.ajax({
-            type: "post",
-            url: "<?php echo url('awvs_batch_del')?>",
-            data: {ids: ids},
-            dataType: "json",
-            success: function (data) {
-                alert(data.msg)
-                if (data.code == 1) {
-                    window.setTimeout(function () {
-                        location.reload();
-                    }, 2000)
-                }
-            }
-        });
-    }
-</script>

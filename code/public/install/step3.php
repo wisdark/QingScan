@@ -77,6 +77,7 @@ function batchExecuteSql($sqlArr)
     }
 }
 
+
 function addOldData()
 {
     $str = $_POST['password'] . $_POST['username'];
@@ -85,13 +86,13 @@ function addOldData()
     //导入最新的数据格式
     $sql = "UPDATE  user SET username=?,password=? where id = 1";
 
-    $result = Db::execute($sql,[$_POST['username'],$password]);
+    $result = Db::connect('mysql')->execute($sql,[$_POST['username'],$password]);
     if ($result) {
         echo " <a class=\"btn btn-lg btn-outline-success\" href='/' >导入数据成功!,进入首页</a>";
         file_put_contents('install.lock', '');
 
         // 更新版本号
-        /*$sqlPath = '/root/qingscan/docker/data';
+        $sqlPath = '/root/qingscan/docker/data';
         $fileNameList = getDirFileName($sqlPath);
         unset($fileNameList[count($fileNameList) - 1]);
         unset($fileNameList[count($fileNameList) - 1]);
@@ -100,7 +101,9 @@ function addOldData()
             $filename = substr($filepath,strripos($filepath,'/')+1,strlen($filepath));
             $newVersion = substr($filename,0,strripos($filename,'.'));
             file_put_contents($sqlPath.'/update.lock',$newVersion);
-        }*/
+        }
+    } else {
+        echo "<h2 style='color: red'> 数据导入失败:</h2><code>{$sql}</code><br>";
     }
 }
 
@@ -116,8 +119,10 @@ function getSqlArr()
     //匹配插入语句
     $zhengze = "/INSERT.*;/Us";
     preg_match_all($zhengze, $str, $charu);
-
-    $arr = array_merge($shanbiao[0], $jianbiao[0], $charu[0]);
+    //匹配添加字段语句
+    $zhengze = "/ALTER TABLE.*;/Us";
+    preg_match_all($zhengze, $str, $filed);
+    $arr = array_merge($shanbiao[0], $jianbiao[0], $charu[0],$filed[0]);
     array_unshift($arr, "SET FOREIGN_KEY_CHECKS = 0;");
     array_push($arr, "SET FOREIGN_KEY_CHECKS = 1;");
 

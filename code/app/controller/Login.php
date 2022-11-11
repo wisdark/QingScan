@@ -5,6 +5,7 @@ namespace app\controller;
 use app\BaseController;
 use app\model\UserLogModel;
 use app\model\UserModel;
+use think\facade\Cookie;
 use think\facade\Db;
 use think\facade\View;
 use think\Request;
@@ -13,7 +14,11 @@ class Login extends BaseController
 {
     public function index()
     {
-            //echo ucenter_md5('' . 'test_scan', config('app.UC_AUTH_KEY'));
+        parse_str(think_decrypt(Cookie::get('scan_user')), $arr);
+        if ($arr) {
+            return redirect(url('index/index'));
+        }
+        //echo ucenter_md5('123456' . 'test_scan', config('app.UC_AUTH_KEY'));
         return View::fetch('user/login');
     }
 
@@ -53,6 +58,7 @@ class Login extends BaseController
     }
 
     public function register(){
+        exit();
         if ($this->request->isPost()) {
             $this->error('注册功能待完善,暂时关闭，如需添加用户请在管理后台添加~');
             $username = input('username'); // 账号
@@ -80,5 +86,11 @@ class Login extends BaseController
         } else {
             return View::fetch('user/register');
         }
+    }
+
+    public function clear_cache(){
+        $cmd = "cd /root/qingscan/code/runtime/ && rm -rf ./*";
+        systemLog($cmd,false);
+        $this->success('系统缓存,清除成功','index');
     }
 }

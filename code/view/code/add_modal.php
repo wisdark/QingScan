@@ -14,6 +14,17 @@
                         <input type="text" name="name" class="form-control" placeholder="应用名称" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">项目类型</label>
+                        <select name="project_type" class="form-select" aria-label="Default select example" required>
+                            <option value="1">PHP项目</option>
+                            <option value="2">JAVA项目</option>
+                            <option value="3">Python项目</option>
+                            <option value="4">Golang项目</option>
+                            <option value="5">APP项目</option>
+                            <option value="6">其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">是否私有仓库</label>
                         <select name="is_private" class="form-select" aria-label="Default select example">
                             <option value="0">公共仓库</option>
@@ -42,6 +53,18 @@
                     <div class="mb-3">
                         <label class="form-label">私钥</label>
                         <input type="text" name="private_key" class="form-control" placeholder="私钥">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">需要调用的工具</label>
+                        <div class="checkbox">
+                            <?php
+                            foreach ($tools_list as $k=>$v) {
+                                ?>
+                                <label>
+                                    <input type="checkbox" name="tools[]" value="<?php echo $k;?>"><?php echo $v;?>
+                                </label>
+                            <?php }?>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

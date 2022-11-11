@@ -11,13 +11,14 @@ class CodeJavaModel extends BaseModel
     public static function code_java()
     {
         $codePath = "/data/codeCheck";
+        ini_set('max_execution_time', 0);
         while (true) {
             processSleep(1);
-            ini_set('max_execution_time', 0);
-            $list = Db::name('code')->whereTime('java_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))
-                ->where('is_delete', 0)->limit(1)->orderRand()->select()->toArray();
+            $where[] = ['project_type','in',[2,6]];
+            $list = self::getCodeStayScanList('java_scan_time',$where);
+
             foreach ($list as $k => $v) {
-                PluginModel::addScanLog($v['id'], __METHOD__, 0, 2);
+                PluginModel::addScanLog($v['id'], __METHOD__, 2);
                 self::scanTime('code', $v['id'], 'java_scan_time');
 
                 $value = $v;
@@ -59,9 +60,9 @@ class CodeJavaModel extends BaseModel
                         addlog("JAVA依赖扫描失败,项目文件内容为空:{$val['file']}");
                     }
                 }
-                PluginModel::addScanLog($v['id'], __METHOD__, 1,2);
+                PluginModel::addScanLog($v['id'], __METHOD__, 2,1);
             }
-            sleep(10);
+            sleep(30);
         }
     }
 }

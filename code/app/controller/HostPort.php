@@ -54,7 +54,7 @@ class HostPort extends Common
         $data['list'] = $list->items();
         $data['page'] = $list->render();
         $data['classify'] = HostPortModel::getClassify($where);
-        $data['appArr'] = AppModel::getAppName();
+        $data['appArr'] = $this->getMyAppList();
         $projectArr = Db::table('code')->select()->toArray();
         $projectArr = array_column($projectArr, null, 'id');
         $data['projectArr'] = $projectArr;
@@ -66,8 +66,8 @@ class HostPort extends Common
         return View::fetch('index', $data);
     }
 
-    public function details(){
-        $id = getParam('id');
+    public function details(Request $request){
+        $id = $request->param('id');
         if (!$id) {
             $this->error('参数错误');
         }
@@ -148,11 +148,9 @@ class HostPort extends Common
         }
     }
 
-    public function del()
+    public function del(Request $request)
     {
-
-
-        $id = getParam('id');
+        $id = $request->param('id');
         if (Db::name('host_port')->where('id',$id)->delete()) {
             return redirect($_SERVER['HTTP_REFERER']);
         } else {

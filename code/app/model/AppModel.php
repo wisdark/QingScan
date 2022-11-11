@@ -60,8 +60,7 @@ class AppModel extends BaseModel
         $token = ConfigModel::value('fofa_token');
         while (true) {
             processSleep(1);
-            $endTime = date('Y-m-d', time() - 86400 * 15);
-            $appList = Db::table(self::$tableName)->whereTime('subdomain_time', '<=', $endTime)->orderRand()->limit(10)->select()->toArray();
+            $appList = self::getAppStayScanList('subdomain_time',10);
             foreach ($appList as $appInfo) {
                 PluginModel::addScanLog($appInfo['id'], __METHOD__, 0);
                 $str = urlencode(base64_encode('domain="' . parse_url($appInfo['url'])['host'] . '"'));
@@ -75,12 +74,11 @@ class AppModel extends BaseModel
                         $url = "http://" . $url;
                     }
                     $subDomain = ['name' => $appInfo['name'], 'url' => $url];
-                    var_dump($subDomain);
                     Db::table(self::$tableName)->extra("IGNORE")->insert($subDomain);
                 }
                 $appInfo['subdomain_time'] = date('Y-m-d H:i:s');
                 Db::table(self::$tableName)->save($appInfo);
-                PluginModel::addScanLog($appInfo['id'], __METHOD__, 1);
+                PluginModel::addScanLog($appInfo['id'], __METHOD__, 0,1);
             }
 
             print_r("休息10秒..." . PHP_EOL);
@@ -258,7 +256,7 @@ class AppModel extends BaseModel
 
     private static function add($data)
     {
-        $datetime = date('Y-m-d H:i:s', time() + 86400 * 365);
+        /*$datetime = date('Y-m-d H:i:s', time() + 86400 * 365);
         if ($data['is_xray'] == 0) {
             $data['xray_scan_time'] = $datetime;
         }
@@ -270,15 +268,15 @@ class AppModel extends BaseModel
         }
         if ($data['is_one_for_all'] == 0) {
             $data['subdomain_scan_time'] = $datetime;
-        }
+        }*/
 //        if ($data['is_hydra'] == 0) {
 //            if (!Db::name('host')->where('app_id',$data[''])) {
 //
 //            }
 //        }
-        if ($data['is_dirmap'] == 0) {
+        /*if ($data['is_dirmap'] == 0) {
             $data['dirmap_scan_time'] = $datetime;
-        }
+        }*/
         //return Db::table(self::$tableName)->insert($data);
         return Db::table(self::$tableName)->insertGetId($data);
     }
@@ -288,28 +286,31 @@ class AppModel extends BaseModel
     public static function whatweb()
     {
         ini_set('max_execution_time', 0);
+        $file_path = '/data/tools/whatweb';
         while (true) {
             processSleep(1);
-            $list = Db::name('app')->whereTime('whatweb_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->limit(10)->orderRand()->where('is_delete',0)->field('id,url,user_id')->select()->toArray();
-            $file_path = '/data/tools/whatweb';
+            $list = self::getAppStayScanList('whatweb_scan_time',10);
             @mkdir($file_path,0777, true);
             foreach ($list as $k => $v) {
+                if (!self::checkToolAuth(1,$v['id'],'whatweb')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($v['id'], __METHOD__, 0);
+                self::scanTime('app',$val['id'],'whatweb_scan_time');
+
                 $filename = "{$file_path}/whatweb.json";
                 $cmd = "whatweb {$v['url']} --log-json $filename";
                 systemLog($cmd);
                 if (file_exists($filename) == false) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     addlog(["whatweb扫描结果文件不存在:{$filename}"]);
-                    self::updateScanTime($v['id'],'whatweb_scan_time');
                     continue;
                 }
 
                 $contents = file_get_contents($filename);
                 $arr = json_decode($contents,true);
                 if ($contents && is_array($arr)) {
-                    self::updateScanTime($v['id'],'whatweb_scan_time');
-
                     $target = [];
                     $http_status = [];
                     $request_config = [];
@@ -333,12 +334,11 @@ class AppModel extends BaseModel
                         Db::name('app_whatweb')->insert($data);
                     }
                 } else {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     addlog(["whatweb扫描结果文件内容格式错误:{$filename}"]);
-                    self::updateScanTime($v['id'],'whatweb_scan_time');
                 }
                 @unlink($filename);
-                PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                PluginModel::addScanLog($v['id'], __METHOD__,0, 1);
             }
             sleep(10);
         }
@@ -386,20 +386,14 @@ class AppModel extends BaseModel
         }
     }
 
-
+    //获取项目列表
     public static function getAppName()
     {
-        $appList = Db::table(self::$tableName)->select()->toArray();
-
+        $appList = Db::table(self::$tableName)->field('id,name')->select()->toArray();
         $appList = array_column($appList, 'name', 'id');
         return $appList;
     }
 
-    public static function deleteByWhere($where)
-    {
-        $data = getArrayField($where, self::field());
-
-    }
 
     public static function updateScanTime($id,$filed)
     {

@@ -225,12 +225,14 @@ class CodeCheckModel extends BaseModel
         }
         while (true) {
             processSleep(1);
-            $endTime = date('Y-m-d', time() - 86400 * 15);
-            $list = Db::table('code')->where(['is_delete' => 0])->whereTime('scan_time', '<=', $endTime)->orderRand()->limit(1)->select()->toArray();
-            $count = count($list);
-
+            $list = self::getCodeStayScanList('scan_time');
             foreach ($list as $value) {
-                PluginModel::addScanLog($value['id'], __METHOD__, 0,2);
+                if (!self::checkToolAuth(2,$value['id'],'fortify')) {
+                    continue;
+                }
+                PluginModel::addScanLog($value['id'], __METHOD__, 2,0);
+                self::scanTime('code',$value['id'],'scan_time');
+
                 $prName = cleanString($value['name']);
                 $codeUrl = $value['ssh_url'];
                 addlog("开始执行扫描代码任务:{$prName}..." . PHP_EOL);
@@ -258,11 +260,11 @@ class CodeCheckModel extends BaseModel
                 if (file_exists("{$fortifyRetDir}/{$prName}.xml")) {
                     self::scanTime('code',$value['id'],'scan_time');
                 }
-                PluginModel::addScanLog($value['id'], __METHOD__, 1,2);
+                PluginModel::addScanLog($value['id'], __METHOD__, 2,1);
             }
 
             addlog("fortify 完成本次扫描任务，休息10秒");
-            sleep(10);
+            sleep(30);
         }
     }
 
@@ -275,10 +277,12 @@ class CodeCheckModel extends BaseModel
         }
         while (true) {
             processSleep(1);
-            $endTime = date('Y-m-d', time() - 86400 * 15);
-            $list = Db::table('code')->whereTime('kunlun_scan_time', '<=', $endTime)->orderRand()->limit(1)->select()->toArray();
+            $list = self::getCodeStayScanList('kunlun_scan_time');
             foreach ($list as $value) {
-                PluginModel::addScanLog($value['id'], __METHOD__, 0,2);
+                if (!self::checkToolAuth(2,$value['id'],'kunlun')) {
+                    continue;
+                }
+                PluginModel::addScanLog($value['id'], __METHOD__, 2,0);
                 $prName = cleanString($value['name']);
                 $codeUrl = $value['ssh_url'];
                 $filepath = "{$codePath}/{$prName}";
@@ -290,27 +294,43 @@ class CodeCheckModel extends BaseModel
                 $result = KunlunModel::startScan($filepath);
                 if ($result) {
                     self::scanTime('code',$value['id'],'kunlun_scan_time');
+                    $scan_project_id = Db::connect('kunlun')->table("index_project")->where('code_id',0)->where(
+                        'project_name',$prName
+                    )->value('id');
+                    if ($scan_project_id) {
+                        Db::connect('kunlun')->table("index_project")->where('code_id',0)->where(
+                            'project_name',$prName
+                        )->update([
+                            'user_id'=>$value['user_id'],
+                            'code_id'=>$value['id'],
+                        ]);
+                        Db::connect('kunlun')->table("index_scanresulttask")->where('scan_project_id',$scan_project_id)->update([
+                            'user_id'=>$value['user_id'],
+                            'code_id'=>$value['id'],
+                        ]);
+                    }
+                    addlog(["kunlun扫描成功，相关关联数据已修改"]);
                 }
-                PluginModel::addScanLog($value['id'], __METHOD__, 1,2);
+                PluginModel::addScanLog($value['id'], __METHOD__, 2,1);
             }
-            print_r("跑完一圈,休息10秒..." . PHP_EOL);
-            sleep(10);
+            sleep(30);
         }
     }
 
-    public static function semgrep()
+    public static function  semgrep()
     {
         $codePath = "/data/codeCheck";
         $fortifyRetDir = "/data/semgrep_result";
 
         while (true) {
             processSleep(1);
-            $endTime = date('Y-m-d', time() - 86400 * 15);
-            $list = Db::table('code')->whereTime('semgrep_scan_time', '<=', $endTime)->orderRand()->limit(1)->select()->toArray();
-            $count = count($list);
-            print("开始执行semgrep扫描代码任务,{$count} 个项目等待扫描..." . PHP_EOL);
+            $list = self::getCodeStayScanList('semgrep_scan_time');
             foreach ($list as $value) {
-                PluginModel::addScanLog($value['id'], __METHOD__, 0,2);
+                if (!self::checkToolAuth(2,$value['id'],'semgrep')) {
+                    continue;
+                }
+                PluginModel::addScanLog($value['id'], __METHOD__, 2,0);
+
                 $prName = cleanString($value['name']);
                 $codeUrl = $value['ssh_url'];
                 $filepath = "{$codePath}/{$prName}";
@@ -330,10 +350,10 @@ class CodeCheckModel extends BaseModel
                 if (file_exists($outJson)) {
                     self::scanTime('code',$value['id'],'semgrep_scan_time');
                 }
-                PluginModel::addScanLog($value['id'], __METHOD__, 1,2);
+                PluginModel::addScanLog($value['id'], __METHOD__, 2,1);
             }
 
-            sleep(10);
+            sleep(30);
         }
     }
 }

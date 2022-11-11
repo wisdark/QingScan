@@ -10,8 +10,8 @@ class WebScanModel extends BaseModel
 {
     public static function rad()
     {
+        ini_set('max_execution_time', 0);
         $path = "cd /data/tools/rad/ && ";
-
         //判断rad运行环境是否安装
         if (file_exists("/usr/bin/google-chrome") == false) {
             addlog("RAD 运行依赖环境不存在，请安装chrome环境~");
@@ -19,8 +19,17 @@ class WebScanModel extends BaseModel
         }
         while (true) {
             processSleep(1);
-            $list = Db::table('app')->whereTime('crawler_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->limit(1)->orderRand()->select()->toArray();
+            $endTime = date('Y-m-d', time() - 86400 * 15);
+            $where[] = ['is_delete','=',0];
+            $where[] = ['status','=',1];
+            $list = self::getAppStayScanList('crawler_time');
+            $count = Db::table('app')->whereTime('crawler_time', '<=', $endTime)->where($where)->count('id');
+            print("开始执行rad扫描任务,{$count} 个项目等待扫描..." . PHP_EOL);
             foreach ($list as $value) {
+                if (!self::checkToolAuth(1,$value['id'],'rad')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($value['id'], __METHOD__, 0);
                 self::scanTime('app', $value['id'], 'crawler_time');
 
@@ -71,7 +80,7 @@ class WebScanModel extends BaseModel
 
                 if (!file_exists($pathArr['tool_result'])) {
                     addlog(["rad扫描失败,结果文件不存在", $pathArr['tool_result']]);
-                    PluginModel::addScanLog($value['id'], __METHOD__, 2, 0);
+                    PluginModel::addScanLog($value['id'], __METHOD__, 0, 2);
                     continue;
                 }
 
@@ -81,45 +90,58 @@ class WebScanModel extends BaseModel
                 }*/
                 $urlList = json_decode(file_get_contents($pathArr['tool_result']), true);
                 foreach ($urlList as $val) {
+                    $val['URL'] = rtrim($val['URL'],'/');
                     $arr = parse_url($val['URL']);
-                    $blackExt = ['.js', '.css', '.json', '.png', '.jpg', '.jpeg', '.gif', '.mp3', '.mp4'];
-                    if (!isset($arr['query']) or (isset($arr['path']) && in_array_strpos($arr['path'], $blackExt)) or (strpos($arr['query'], '=') === false)) {
+                    $blackExt = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.mp3', '.mp4','.ico','.bmp','.wmv','.avi','.psd'];
+                    //if (!isset($arr['query']) or (isset($arr['path']) && in_array_strpos($arr['path'], $blackExt)) or (strpos($arr['query'], '=') === false)) {
+                    if (isset($arr['path']) && in_array_strpos(strtolower($arr['path']), $blackExt) || in_array_strpos(strtolower($val['URL']),$blackExt)) {
                         addlog(["rad扫描跳过无意义URL", $val['URL']]);
                         continue;
                     }
-                    $newData = [
-                        'app_id' => $id,
-                        'method' => $val['Method'],
-                        'url' => $val['URL'],
-                        'status' => 1,
-                        'hash' => md5($val['URL']),
-                        'crawl_status' => 1,
-                        'scan_status' => 0,
-                        'header' => isset($val['Header']) ? json_encode($val['Header']) : "",
-                        'user_id' => $user_id
-                    ];
-                    Db::name('urls')->insert($newData);
-                    addlog(["rad扫描数据写入成功", json_encode($newData)]);
+                    if (!Db::name('urls')->where('hash',md5($val['URL']))->count()) {
+                        $newData = [
+                            'app_id' => $id,
+                            'method' => $val['Method'],
+                            'url' => $val['URL'],
+                            'status' => 1,
+                            'hash' => md5($val['URL']),
+                            'crawl_status' => 1,
+                            'scan_status' => 0,
+                            'header' => isset($val['Header']) ? json_encode($val['Header']) : "",
+                            'user_id' => $user_id
+                        ];
+                        Db::name('urls')->insert($newData);
+                        addlog(["rad扫描数据写入成功", json_encode($newData)]);
+                    }
                 }
-                PluginModel::addScanLog($value['id'], __METHOD__, 1, 0, ['content' => $urlList]);
+                PluginModel::addScanLog($value['id'], __METHOD__, 0, 1,1, ['content' => $urlList]);
             }
-            sleep(10);
+            sleep(30);
         }
 
     }
-
 
     public static function xray()
     {
         while (true) {
             processSleep(1);
-            $list = Db::table('app')->whereTime('xray_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->where('is_delete', 0)->limit(1)->orderRand()->select()->toArray();
+            $endTime = date('Y-m-d', time() - 86400 * 15);
+            $where[] = ['is_delete','=',0];
+            $where[] = ['status','=',1];
+            $list = self::getAppStayScanList('xray_scan_time');
+            $count = Db::table('app')->whereTime('xray_scan_time', '<=', $endTime)->where($where)->count('id');
+            print("开始执行xray漏洞扫描任务,{$count} 个项目等待扫描..." . PHP_EOL);
             foreach ($list as $val) {
+                if (!self::checkToolAuth(1,$val['id'],'xray')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($val['id'], __METHOD__, 0);
+                self::scanTime('app', $val['id'], 'xray_scan_time');
+
                 $url = $val['url'];
                 $id = $val['id'];
                 $user_id = $val['user_id'];
-                //addlog(["XRAY开始执行扫描任务", $id, $url]);
                 $path = "cd /data/tools/xray/ && ";
                 $pathArr = getSavePath($url, "xray", $id);
 
@@ -172,6 +194,7 @@ class WebScanModel extends BaseModel
                     $result = file_put_contents($pathArr['cmd_result'], $result);
                     if ($result == false) {
                         addlog(["xray写入执行结果失败", base64_encode($pathArr['cmd_result'])]);
+                        PluginModel::addScanLog($val['id'], __METHOD__, 0,2);
                         continue;
                     }
                 } else {
@@ -181,7 +204,7 @@ class WebScanModel extends BaseModel
                 if (file_exists($pathArr['tool_result']) == false) {
                     addlog("xray扫描结果文件不存在:{$pathArr['tool_result']},扫描URL失败: {$url}");
                     Db::table('app')->where(['id' => $id])->save(['xray_scan_time' => date('2048-m-d H:i:s')]);
-                    PluginModel::addScanLog($val['id'], __METHOD__, 1);
+                    PluginModel::addScanLog($val['id'], __METHOD__, 0,2);
                     continue;
                 }
 
@@ -204,11 +227,9 @@ class WebScanModel extends BaseModel
                     XrayModel::addXray($newData);
                 }
                 addlog(["xray扫描数据写入成功:" . json_encode($addr,JSON_UNESCAPED_UNICODE)]);
-                self::scanTime('app', $id, 'xray_scan_time');
-
-                PluginModel::addScanLog($val['id'], __METHOD__, 1);
+                PluginModel::addScanLog($val['id'], __METHOD__, 0,1);
             }
-            sleep(10);
+            sleep(30);
         }
     }
 
@@ -228,7 +249,7 @@ class WebScanModel extends BaseModel
                 execLog($cmd, $result);
                 // 如果返回值长度是0说明任务没有执行
                 if (count($result) == 0) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     Db::name('app')->where('id', $v['id'])->update(['agent_start_up' => 1, 'agent_time' => date('Y-m-d H:i:s', time())]);
 
                     $cmd = "cd {$agent} && nohup ./xray_linux_amd64 webscan --listen 0.0.0.0:{$v['xray_agent_port']} --json-output {$v['id']}.json   xray_{$v['id']}_{$v['xray_agent_port']} >> /dev/null 2>&1";
@@ -236,9 +257,9 @@ class WebScanModel extends BaseModel
                     systemLog($cmd);
                     addlog(["xray代理模式启动", json_encode($cmd)]);
                 }
-                PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                PluginModel::addScanLog($v['id'], __METHOD__, 0,1);
             }
-            sleep(10);
+            sleep(30);
         }
     }
 
@@ -312,19 +333,23 @@ class WebScanModel extends BaseModel
     {
         ini_set('max_execution_time', 0);
         $agent = "/data/tools/nuclei/";
+        $filename = '/tmp/nuclei.json';
         while (true) {
             processSleep(1);
-            $list = Db::name('app')->whereTime('nuclei_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->where('is_delete', 0)->limit(1)->orderRand()->select()->toArray();
+            $list = self::getAppStayScanList('nuclei_scan_time');
             foreach ($list as $v) {
+                if (!self::checkToolAuth(1,$v['id'],'nuclei')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($v['id'], __METHOD__, 0);
                 self::scanTime('app', $v['id'], 'nuclei_scan_time');
 
-                $filename = '/tmp/nuclei.json';
                 @unlink($filename);
                 $cmd = "cd $agent && ./nuclei -u {$v['url']} -json -o {$filename}";
                 systemLog($cmd);
                 if (!file_exists($filename)) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     addlog(["nucel扫描失败，url:{$v['url']}"]);
                     continue;
                 }
@@ -366,12 +391,12 @@ class WebScanModel extends BaseModel
                 }
                 fclose($file);
                 if (!$temp) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                    PluginModel::addScanLog($v['id'], __METHOD__,0, 1);
                     addlog(["nuclei扫描未发现漏洞:{$v['url']}，数据结构：".json_encode($temp)]);
                     continue;
                 }
                 addlog(["nuclei扫描数据写入成功:" . json_encode($temp)]);
-                PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                PluginModel::addScanLog($v['id'], __METHOD__, 0,1);
             }
             sleep(120);
         }
@@ -383,8 +408,12 @@ class WebScanModel extends BaseModel
         $agent = "/data/tools/vulmap/";
         while (true) {
             processSleep(1);
-            $list = Db::name('app')->whereTime('vulmap_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->where('is_delete', 0)->limit(1)->orderRand()->select()->toArray();
+            $list = self::getAppStayScanList('vulmap_scan_time');
             foreach ($list as $v) {
+                if (!self::checkToolAuth(1,$v['id'],'vulmap')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($v['id'], __METHOD__, 0);
                 self::scanTime('app', $v['id'], 'vulmap_scan_time');
 
@@ -393,13 +422,13 @@ class WebScanModel extends BaseModel
                 $cmd = "cd $agent && python3 vulmap.py -u {$v['url']} --output-json {$filename}";
                 systemLog($cmd);
                 if (!file_exists($filename)) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,1);
                     addlog(["vulmap扫描完成,没有发现漏洞，url:{$v['url']}"]);
                     continue;
                 }
                 $arr = json_decode(file_get_contents($filename), true);
                 if (!$arr) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     addlog(["{$v['url']}文件内容不存在:{$filename}"]);
                     continue;
                 }
@@ -423,10 +452,10 @@ class WebScanModel extends BaseModel
                     ];
                     if (!Db::name('app_vulmap')->insert($data)) {
                         addlog(["app_vulmap数据写入失败:" . json_encode($data)]);
-                        PluginModel::addScanLog($v['id'], __METHOD__, 2, 0, ['content' => 'app_vulmap数据写入失败']);
+                        PluginModel::addScanLog($v['id'], __METHOD__, 0, 2, 1,['content' => 'app_vulmap数据写入失败']);
                     };
                 }
-                PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                PluginModel::addScanLog($v['id'], __METHOD__, 0,1);
             }
 
             sleep(120);
@@ -440,8 +469,12 @@ class WebScanModel extends BaseModel
         $tools = "/data/tools/crawlergo/";
         while (true) {
             processSleep(1);
-            $list = Db::name('app')->whereTime('crawlergo_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->where('is_delete', 0)->limit(1)->orderRand()->select()->toArray();
+            $list = self::getAppStayScanList('crawlergo_scan_time');
             foreach ($list as $val) {
+                if (!self::checkToolAuth(1,$val['id'],'crawlergo')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($val['id'], __METHOD__, 0);
                 self::scanTime('app', $val['id'], 'crawlergo_scan_time');
 
@@ -451,7 +484,7 @@ class WebScanModel extends BaseModel
                 $cmd = "cd $tools && ./cmd/crawlergo/crawlergo_cmd -c /usr/bin/google-chrome -o none --output-json $filename -f 'strict' -t 10 {$val['url']}";
                 systemLog($cmd);
                 if (!file_exists($filename)) {
-                    PluginModel::addScanLog($val['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($val['id'], __METHOD__,0, 2);
                     addlog(["crawlergo扫描失败，url:{$val['url']}"]);
                     continue;
                 }
@@ -477,7 +510,7 @@ class WebScanModel extends BaseModel
                 if ($data) {
                     Db::name('app_crawlergo')->insertAll($data);
                 }
-                PluginModel::addScanLog($val['id'], __METHOD__, 1);
+                PluginModel::addScanLog($val['id'], __METHOD__,0, 1);
             }
             sleep(120);
         }
@@ -487,19 +520,23 @@ class WebScanModel extends BaseModel
     {
         ini_set('max_execution_time', 0);
         $tools = "/data/tools/dismap/";
+        $filename = $tools . 'dismap.txt';
         while (true) {
             processSleep(1);
-            $list = Db::name('app')->whereTime('dismap_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->where('is_delete', 0)->limit(10)->orderRand()->select()->toArray();
+            $list = self::getAppStayScanList('dismap_scan_time');
             foreach ($list as $v) {
+                if (!self::checkToolAuth(1,$v['id'],'dismap')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($v['id'], __METHOD__, 0);
                 self::scanTime('app', $v['id'], 'dismap_scan_time');
 
-                $filename = $tools . 'dismap.txt';
                 @unlink($filename);
                 $cmd = "cd $tools && ./dismap -url {$v['url']} -output dismap.txt";
                 systemLog($cmd);
                 if (!file_exists($filename)) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     addlog(["dismap扫描失败，url:{$v['url']}"]);
                     continue;
                 }
@@ -510,7 +547,7 @@ class WebScanModel extends BaseModel
                 while (!feof($file)) {
                     $result = fgets($file);
                     if (empty($result)) {
-                        PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                        PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                         addlog(["dismap 扫描目标结果为空", $v['url']]);
                         continue;
                     }
@@ -528,18 +565,18 @@ class WebScanModel extends BaseModel
                 //关闭被打开的文件
                 fclose($file);
                 if (!$data) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__,0, 2);
                     addlog(["dismap扫描数据不存在，url:{$v['url']}"]);
                     continue;
                 }
                 if (!Db::name('app_dismap')->insertAll($data)) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     addlog(["app_dismap数据写入失败:" . json_encode($data)]);
                 };
-                PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                PluginModel::addScanLog($v['id'], __METHOD__,0, 1);
             }
 
-            sleep(30);
+            sleep(60);
         }
     }
 }

@@ -32,10 +32,6 @@
                     <a href="<?php echo url('app/downloaAppTemplate') ?>"
                        class="btn btn-outline-success">下载模板</a>
                 </div>
-                <div class="col-auto">
-                    <a href="<?php echo url('app/suspend_scan') ?>"
-                       class="btn btn-outline-success">暂停扫描</a>
-                </div>
             </form>
         </div>
     </div>
@@ -43,19 +39,27 @@
         <div class="col-md-12 ">
             <form class="row g-3">
                 <div class="col-auto">
+                    <a href="javascript:;>" onclick="suspend_scan(1)"
+                       class="btn btn-outline-success">启用扫描</a>
+                </div>
+                <div class="col-auto">
+                    <a href="javascript:;>" onclick="suspend_scan(2)"
+                       class="btn btn-outline-success">暂停扫描</a>
+                </div>
+                <div class="col-auto">
                     <a href="javascript:;" onclick="again_scan()"
                        class="btn btn-outline-success">重新扫描</a>
                 </div>
                 <div class="col-auto">
                     <a href="javascript:;" onclick="batch_del()"
-                       class="btn btn-outline-success">批量删除</a>
+                       class="btn btn-outline-danger">批量删除</a>
                 </div>
             </form>
 
             <table class="table table-bordered table-hover table-striped">
                 <thead>
                 <tr>
-                    <th>
+                    <th width="70">
                         <label>
                             <input type="checkbox" value="-1" onclick="quanxuan(this)">全选
                         </label>
@@ -63,7 +67,6 @@
                     <th>ID</th>
                     <th>名称</th>
                     <th>rad</th>
-                    <th>crawlergo</th>
                     <th>awvs</th>
                     <th>xray</th>
                     <th>sqlmap</th>
@@ -74,7 +77,9 @@
                     <th>主机数量</th>
                     <th>nuclei</th>
                     <th>hydra</th>
+                    <th>crawlergo</th>
                     <th>创建时间</th>
+                    <th>扫描状态</th>
                     <th style="width: 200px">操作</th>
                 </tr>
                 </thead>
@@ -93,11 +98,6 @@
                         <td>
                             <a title="扫描时间:<?php echo $value['crawler_time'] ?>"
                                href="<?php echo url('urls/index', ['app_id' => $value['id']]); ?>"><?php echo $value['urls_num'] ?? 0 ?>
-                            </a>
-                        </td>
-                        <td>
-                            <a title="扫描时间:<?php echo $value['crawlergo_scan_time'] ?>"
-                               href="<?php echo url('app_crawlergo/index', ['app_id' => $value['id']]); ?>"><?php echo $value['crawlergo_num'] ?? 0 ?>
                             </a>
                         </td>
                         <td>
@@ -150,7 +150,13 @@
                                href="<?php echo url('hydra/index', ['app_id' => $value['id']]); ?>"><?php echo $value['hydra_num'] ?? 0 ?>
                             </a>
                         </td>
+                        <td>
+                            <a title="扫描时间:<?php echo $value['crawlergo_scan_time'] ?>"
+                               href="<?php echo url('app_crawlergo/index', ['app_id' => $value['id']]); ?>"><?php echo $value['crawlergo_num'] ?? 0 ?>
+                            </a>
+                        </td>
                         <td><?php echo date('Y-m-d H:i', strtotime($value['create_time'])) ?></td>
+                        <td><?php echo $value['status']; ?></td>
                         <td>
                             <?php if($value['xray_agent_port'] ?? ''){?>
                                 <a href="javascript:;" onclick="start_agent(<?php echo $value['id'] ?>)"
@@ -159,35 +165,30 @@
                                 <a href="javascript:;" onclick="start_agent(<?php echo $value['id'] ?>)"
                                    class="btn btn-sm btn-outline-success">启动代理</a>
                             <?php }?>
+                            <a href="javascript:;" onclick="tools(<?php echo $value['id'];?>,'<?php echo $value['name'];?>',1)"
+                               class="btn btn-sm btn-outline-warning">工具列表</a>
                             <a href="<?php echo url('details', ['id' => $value['id']]) ?>"
                                class="btn btn-sm btn-outline-primary">查看详情</a>
-                            <a href="<?php echo url('app/qingkong', ['id' => $value['id']]) ?>"
+                            <!--<a href="<?php /*echo url('app/qingkong', ['id' => $value['id']]) */?>"
                                onClick="return confirm('确定要清空数据重新扫描吗?')"
-                               class="btn btn-sm btn-outline-warning">重新扫描</a>
-                            <a href="<?php echo url('app/del', ['id' => $value['id']]) ?>"
+                               class="btn btn-sm btn-outline-warning">重新扫描</a>-->
+                            <!--<a href="<?php /*echo url('app/del', ['id' => $value['id']]) */?>"
                                onClick="return confirm('确定要删除吗?')"
-                               class="btn btn-sm btn-outline-danger">删除</a>
+                               class="btn btn-sm btn-outline-danger">删除</a>-->
                         </td>
                     </tr>
                 <?php } ?>
                 </tbody>
                 <?php if(empty($list)){?>
-                    <tr><td colspan="17" class="text-center">暂无目标</td></tr>
+                    <tr><td colspan="18" class="text-center">暂无目标</td></tr>
                 <?php }?>
             </table>
         </div>
         {include file='public/fenye' /}
     </div>
-
-    <style>
-        .modal-dialog {
-            width: 600px;
-        }
-    </style>
-    <!-- Modal -->
     {include file='app/add_modal' /}
     {include file='app/set_modal' /}
-
+    {include file='process_safe/tools' /}
     {include file='public/footer' /}
     <script>
         function start_agent(id) {
@@ -207,16 +208,33 @@
             });
         }
 
-
-        function quanxuan(obj){
+        function suspend_scan(status){
             var child = $('.table').find('input[type="checkbox"]');
+            var ids = ''
             child.each(function(index, item){
-                if (obj.checked) {
-                    item.checked = true
-                } else {
-                    item.checked = false
+                if (item.value != -1 && item.checked) {
+                    if (ids == '') {
+                        ids = item.value
+                    } else {
+                        ids = ids+','+item.value
+                    }
                 }
             })
+
+            $.ajax({
+                type: "post",
+                url: "<?php echo url('app/suspend_scan')?>",
+                data: {ids: ids,status:status},
+                dataType: "json",
+                success: function (data) {
+                    alert(data.msg)
+                    if (data.code == 1) {
+                        window.setTimeout(function () {
+                            location.reload();
+                        }, 2000)
+                    }
+                }
+            });
         }
 
         function batch_del(){

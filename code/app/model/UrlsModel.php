@@ -55,35 +55,6 @@ class UrlsModel extends BaseModel
 
     }
 
-
-    public static function getCrawlerInfo($crawlerId)
-    {
-
-        //查询具体数据,并刷新缓存
-        $result = self::getList(['id' => $crawlerId]);
-
-
-        return $result[0] ?? false;
-
-    }
-
-    /**
-     * 获取APP的URL地址
-     *
-     * @param int $appId
-     * @return mixed
-     */
-    public static function getCrawlerList(int $appId)
-    {
-
-        //查询具体数据,并刷新缓存
-        $result = self::getList(['app_id' => $appId]);
-
-
-        return $result;
-
-    }
-
     /**
      * @param  $where
      * @param int $limit
@@ -92,103 +63,10 @@ class UrlsModel extends BaseModel
      */
     private static function getList($where, int $limit = 15, int $page = 1, array $otherParam = [])
     {
-
         $result = Db::table(self::$tableName)->where($where)->select()->toArray();
-
         return $result;
     }
 
-    private static function getCount($where, array $otherParam = [])
-    {
-        $group = $otherParam['group'] ?? '';
-
-
-        $api = Db::table(self::$tableName)->where($where);
-
-        if ($group) {
-            $api = $api->group($group);
-        }
-
-        $count = $api->group($group)->count();
-
-        return $count;
-
-    }
-
-
-    public static function getListByWherePage($where, $page, $pageSize = 15)
-    {
-
-        $list = self::getList($where, $pageSize, $page);
-
-        $count = self::getCount($where);
-
-        return ['list' => $list, 'count' => $count, 'pageSize' => $pageSize];
-    }
-
-    public static function getListByWhere($where)
-    {
-
-        $list = self::getList($where);
-
-        return $list;
-    }
-
-    /**
-     * 获取单条记录
-     *
-     * @param int $id
-     * @return array
-     */
-    public static function getInfo(int $id)
-    {
-        $where = ['id' => $id];
-
-        $list = self::getList($where);
-
-        return $list[0] ?? [];
-    }
-
-    /**
-     * 内部方法，更新数据
-     *
-     * @param array $where
-     * @param array $data
-     * @return mixed
-     */
-    private static function updateByWhere(array $where, array $data)
-    {
-
-        Db::table('crawler')->where($where)->update($data);
-    }
-
-    /**
-     * 更新生成任务状态
-     *
-     * @param string $crawlerNum
-     * @param int $status
-     */
-    public static function updateStatus(int $id, int $status)
-    {
-        $where = ['id' => $id];
-        $data = ['status' => $status];
-        self::updateByWhere($where, $data);
-    }
-
-
-    public static function updateScanStatus(int $id, int $status, string $cmdResult)
-    {
-        $where = ['id' => $id];
-        $data = ['scan_status' => $status, 'cmd_result' => $cmdResult];
-        self::updateByWhere($where, $data);
-    }
-
-    public static function updateCrawlStatus(int $id, int $status)
-    {
-        $where = ['id' => $id];
-        $data = ['crawl_status' => $status];
-        self::updateByWhere($where, $data);
-    }
 
     /**
      * @param array $data
@@ -196,7 +74,6 @@ class UrlsModel extends BaseModel
     public static function addData(array $data, $metod = 'get')
     {
         $data['method'] = $metod;
-
         return self::add($data);
     }
 
@@ -208,24 +85,28 @@ class UrlsModel extends BaseModel
     public static function sqlmapScan()
     {
         ini_set('max_execution_time', 0);
+        $tools = '/data/tools/sqlmap/';
+        $file_path = $tools.'result/';
         while (true) {
             processSleep(1);
-            $api = Db::name('urls')->whereTime('sqlmap_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)));
-            $list = $api->where('is_delete', 0)->field('id,url,app_id,user_id')->limit(5)->orderRand()->select()->toArray();
-            $tools = '/data/tools/sqlmap/';
+            $endTime = date('Y-m-d', time() - 86400 * 15);
+            $where[] = ['is_delete','=',0];
+            $list = Db::name('urls')->whereTime('sqlmap_scan_time', '<=', $endTime)->where($where)->field('id,url,app_id,user_id')->limit(5)->orderRand()->select()->toArray();
             foreach ($list as $k => $v) {
-                PluginModel::addScanLog($v['id'], __METHOD__, 0,3);
+                if (!self::checkToolAuth(1,$v['app_id'],'sqlmap')) {
+                    continue;
+                }
+                PluginModel::addScanLog($v['id'], __METHOD__, 3);
                 self::scanTime('urls',$v['id'],'sqlmap_scan_time');
 
                 $arr = parse_url($v['url']);
-                $blackExt = ['.js', '.css', '.json', '.png', '.jpg', '.jpeg', '.gif', '.mp3', '.mp4'];
+                $blackExt = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.mp3', '.mp4','.ico','.bmp','.wmv','.avi','.psd'];
                 //没有可以注入的参数
-                if (!isset($arr['query']) or in_array_strpos($arr['path'], $blackExt) or (strpos($arr['query'], '=') === false)) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2,3);
+                if (!isset($arr['query']) or in_array_strpos(strtolower($arr['path']), $blackExt) or (strpos($arr['query'], '=') === false)) {
+                    PluginModel::addScanLog($v['id'], __METHOD__, 3,2);
                     addlog(["URL地址不存在可以注入的参数", $v['url']]);
                     continue;
                 }
-                $file_path = $tools.'result/';
                 $cmd = "cd {$tools}  && python3 ./sqlmap.py -u '{$v['url']}' --batch  --random-agent --output-dir={$file_path}";
                 systemLog($cmd);
                 $host = $arr['host'];
@@ -234,7 +115,7 @@ class UrlsModel extends BaseModel
 
                 //sqlmap输出异常
                 if (!is_dir($outdir) or !file_exists($outfilename) or !filesize($outfilename)) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2,3);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 3,1);
                     addlog(["sqlmap没有找到注入点", $v['url']]);
                     continue;
                 }
@@ -265,7 +146,7 @@ class UrlsModel extends BaseModel
                 }
                 addlog(["sqlmap扫描成功数据已写入：", $v['url']]);
                 systemLog("rm -rf $outdir");
-                PluginModel::addScanLog($v['id'], __METHOD__, 1,3);
+                PluginModel::addScanLog($v['id'], __METHOD__, 3,1);
             }
             //exit;
             sleep(5);
@@ -278,17 +159,17 @@ class UrlsModel extends BaseModel
         while (true) {
             processSleep(1);
             $list = Db::name('urls')->where('is_delete', 0)->field('id,url')->limit(5)->orderRand()->select()->toArray();
-            foreach ($list as $k => $v) {
-                PluginModel::addScanLog($v['id'], __METHOD__, 0,3);
+            foreach ($list as $v) {
+                PluginModel::addScanLog($v['id'], __METHOD__, 0);
                 $arr = parse_url($v['url']);
                 if (in_array_strpos($arr['path'], ['.js', '.css', '.json', '.png', '.jpg', '.jpeg', '.gif', '.mp3', '.mp4'])) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2,3);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 3,2);
                     addlog("此URL地址不是普通HTML文本:{$v['url']}");
                     continue;
                 }
                 $result = curl_get_url_head($v['url']);
                 if ($result['code'] != '200') {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2,3);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 3,2);
                     addlog("此URL地址状态码不是200:{$v['url']}");
                     continue;
                 }
@@ -318,7 +199,7 @@ class UrlsModel extends BaseModel
                 if ($data) {
                     Db::name('urls')->where('id', $v['id'])->update($data);
                 }
-                PluginModel::addScanLog($v['id'], __METHOD__, 1,3);
+                PluginModel::addScanLog($v['id'], __METHOD__, 3,1);
             }
             sleep(10);
         }

@@ -12,11 +12,15 @@ class AppDirmapModel extends BaseModel
     public static function dirmapScan()
     {
         ini_set('max_execution_time', 0);
+        $file_path = '/data/tools/dirmap/';
         while (true) {
             processSleep(1);
-            $list = Db::name('app')->whereTime('dirmap_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->where('is_delete', 0)->orderRand()->limit(1)->field('id,url,user_id')->select();
-            $file_path = '/data/tools/dirmap/';
-            foreach ($list as $k => $v) {
+            $list = self::getAppStayScanList('dirmap_scan_time');
+            foreach ($list as $v) {
+                if (!self::checkToolAuth(1,$v['id'],'dirmap')) {
+                    continue;
+                }
+
                 PluginModel::addScanLog($v['id'], __METHOD__, 0);
                 self::scanTime('app', $v['id'], 'dirmap_scan_time');
 
@@ -27,7 +31,7 @@ class AppDirmapModel extends BaseModel
                 $port = $port ? "_{$port}" : "";
                 $filename = $file_path . "output/{$host}{$port}.txt";
                 if (!file_exists($filename)) {
-                    PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                    PluginModel::addScanLog($v['id'], __METHOD__, 0,2);
                     addlog(["dirmap扫描结果文件不存在:{$filename}", $v]);
                     continue;
                 }
@@ -38,7 +42,7 @@ class AppDirmapModel extends BaseModel
                 while (!feof($file)) {
                     $result = fgets($file);
                     if (empty($result)) {
-                        PluginModel::addScanLog($v['id'], __METHOD__, 2);
+                        PluginModel::addScanLog($v['id'], __METHOD__, 0,1);
                         addlog(["dirmap 扫描目标结果为空", $v['url']]);
                         continue;
                     }
@@ -61,7 +65,7 @@ class AppDirmapModel extends BaseModel
                     Db::name('app_dirmap')->insertAll($data);
                 }
                 @unlink($filename);
-                PluginModel::addScanLog($v['id'], __METHOD__, 1);
+                PluginModel::addScanLog($v['id'], __METHOD__, 0,1);
             }
             sleep(10);
         }

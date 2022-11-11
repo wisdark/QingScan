@@ -1,7 +1,11 @@
 {include file='public/head' /}
 
 <?php
-$dengjiArr = ['ERROR','Low', 'Medium', 'High', 'Critical'];
+$dengjiArr = ['ERROR', 'Low', 'Medium', 'High', 'Critical'];
+
+$fileList = str_replace('/data/codeCheck/', '', $fileList);
+$CategoryList = str_replace('data.tools.semgrep.', '', $CategoryList);
+$fileTypeList = getFileType($fileList);
 ?>
 <?php
 $searchArr = [
@@ -11,8 +15,9 @@ $searchArr = [
         ['type' => 'text', 'name' => 'search', 'placeholder' => "搜索的内容"],
         ['type' => 'select', 'name' => 'level', 'options' => $dengjiArr, 'frist_option' => '危险等级'],
         ['type' => 'select', 'name' => 'Category', 'options' => $CategoryList, 'frist_option' => '漏洞类别'],
-        ['type' => 'select', 'name' => 'project_id', 'options' => $projectList, 'frist_option' => '项目列表'],
+        ['type' => 'select', 'name' => 'code_id', 'options' => $projectList, 'frist_option' => '项目列表'],
         ['type' => 'select', 'name' => 'filename', 'options' => $fileList, 'frist_option' => '文件筛选'],
+        ['type' => 'select', 'name' => 'filetype', 'options' => $fileTypeList, 'frist_option' => '文件后缀'],
         ['type' => 'select', 'name' => 'check_status', 'options' => $check_status_list, 'frist_option' => '审计状态', 'frist_option_value' => -1],
     ]];
 ?>
@@ -33,7 +38,6 @@ $searchArr = [
                 <th>漏洞类型</th>
                 <th>危险等级</th>
                 <th>污染来源</th>
-                <th>代码行号</th>
                 <th>所属项目</th>
                 <th>创建时间</th>
                 <th>状态</th>
@@ -54,15 +58,21 @@ $searchArr = [
                     <td><?php echo $value['extra_severity'] ?></td>
                     <td>
                         <?php
-                        $path = preg_replace("/\/data\/codeCheck\/[a-zA-Z0-9]*\//", "", $value['path']);
-                        $url = getGitAddr($project['name'], $project['ssh_url'], $value['path'], $value['end_line']);
+                            $path = preg_replace("/\/data\/codeCheck\/[a-zA-Z0-9]*\//", "", $value['path']);
+                            if ($projectArr[$value['code_id']]['is_online'] == 1) {
+                                $url = getGitAddr($projectArr[$value['code_id']]['name'], $projectArr[$value['code_id']]['ssh_url'], $value['path'], $value['end_line']);
+                            } else {
+                                $url = url('get_code',['id'=>$value['id'],'type'=>2]);
+                            }
                         ?>
                         <a title="<?php echo htmlentities($value['extra_lines']) ?>" href="<?php echo $url ?>"
-                           target="_blank"><?php echo $path ?>
+                           target="_blank"><?php echo $path ?>:{$value['end_line']}
                         </a>
                     </td>
-                    <td>{$value['end_line']}</td>
-                    <td><?php echo isset($projectArr[$value['code_id']]) ? $projectArr[$value['code_id']]['name'] : '' ?></td>
+                    <td>
+                        <a href="<?php echo url('code/index', ['id' => $value['code_id']]) ?>">
+                            <?php echo isset($projectArr[$value['code_id']]) ? $projectArr[$value['code_id']]['name'] : '' ?></a>
+                    </td>
                     <td><?php echo $value['create_time'] ?></td>
                     <td>
                         <select class="changCheckStatus form-select" data-id="<?php echo $value['id'] ?>">
@@ -94,9 +104,9 @@ $searchArr = [
 {include file='public/footer' /}
 
 <script>
-    function quanxuan(obj){
+    function quanxuan(obj) {
         var child = $('.table').find('.ids');
-        child.each(function(index, item){
+        child.each(function (index, item) {
             if (obj.checked) {
                 item.checked = true
             } else {
@@ -105,15 +115,15 @@ $searchArr = [
         })
     }
 
-    function batch_del(){
+    function batch_del() {
         var child = $('.table').find('.ids');
         var ids = ''
-        child.each(function(index, item){
+        child.each(function (index, item) {
             if (item.value != -1 && item.checked) {
                 if (ids == '') {
                     ids = item.value
                 } else {
-                    ids = ids+','+item.value
+                    ids = ids + ',' + item.value
                 }
             }
         })

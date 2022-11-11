@@ -12,7 +12,6 @@ class GithubNoticeModel extends BaseModel
     public static function getNotice()
     {
         ini_set('max_execution_time', 0);
-        echo "<pre>";
         while (true) {
             processSleep(1);
             $url = 'https://github.com/advisories?page=';
@@ -46,7 +45,6 @@ class GithubNoticeModel extends BaseModel
                     continue;
                 }
                 foreach ($data[1] as $K => $v) {
-                    echo 1;exit;
                     $details = file_get_contents($v);
                     // 获取标题
                     $title_reg = '/<h2 data-view-component="true" class="lh-condensed Subhead-heading">(.*?)\n<\/h2>/';
@@ -105,8 +103,8 @@ class GithubNoticeModel extends BaseModel
                         'hash' => $hash,
                         'create_time' => date('Y-m-d H:i:s', time()),
                     ];
-                    var_dump($data);exit;
-                    //Db::name('github_notice')->insert($data);
+                    //var_dump($data);exit;
+                    Db::name('github_notice')->insert($data);
                 }
                 $i++;
                 sleep(3);

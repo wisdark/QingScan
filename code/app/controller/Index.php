@@ -53,6 +53,8 @@ class Index extends Common
         $codeCount = Db::table('code')->count();
         $semgrepCount = Db::table('semgrep')->count();
         $fortifyCount = Db::table('fortify')->count();
+        $mobsfscanCount = Db::table('mobsfscan')->count();
+        $murphysecCount = Db::table('murphysec')->count();
         $phpCount = Db::table('code_composer')->count();
         $pythonCount = Db::table('code_python')->count();
         $javaCount = Db::table('code_java')->count();
@@ -76,7 +78,7 @@ class Index extends Common
                     ["name" => "sqlmap", "value" => $sqlmapCount, "href" => url('sqlmap/index')],
                     ["name" => "awvs", "value" => $awvsCount, "href" => url('bug/awvs')],
                     ["name" => "vulmap", "value" => $vulmapCount, "href" => url('vulmap/index')],
-                    ["name" => "nuclei", "value" => $nucleiCount, "href" => url('app/index')],
+                    ["name" => "nuclei", "value" => $nucleiCount, "href" => url('app_nuclei/index')],
                     ["name" => "dirmap", "value" => $dirmapCount, "href" => url('dirmap/index')],
                     ["name" => "whatweb", "value" => $whatwebCount, "href" => url('whatweb/index')],
                     ["name" => "oneforall", "value" => $oneforallCount, "href" => url('one_for_all/index')],
@@ -87,7 +89,7 @@ class Index extends Common
                 "value" => $hostCount,
                 "subInfo" => [
                     ["name" => "port", "value" => $portCount, "href" => url('host_port/index')],
-                    ["name" => "组件", "value" => $serviceCount, "href" => url('host_port/index')],
+                    ["name" => "中间件", "value" => $serviceCount, "href" => url('host_port/index')],
                 ]
             ],
             [
@@ -96,6 +98,8 @@ class Index extends Common
                 "subInfo" => [
                     ["name" => "fortify", "value" => $fortifyCount, "href" => url('code/bug_list')],
                     ["name" => "semgrep", "value" => $semgrepCount, "href" => url('code/semgrep_list')],
+                    ["name" => "mobsfscan", "value" => $mobsfscanCount, "href" => url('mobsfscan/index')],
+                    ["name" => "murphysec", "value" => $murphysecCount, "href" => url('murphysec/index')],
                     ["name" => "webshell", "value" => $hemaCount, "href" => url('code_webshell/index')],
                     ["name" => "php", "value" => $phpCount, "href" => url('code_composer/index')],
                     ["name" => "python", "value" => $pythonCount, "href" => url('code_python/index')],
@@ -170,4 +174,20 @@ class Index extends Common
 //        $this->show('index/index', ['list' => $data]);
     }
 
+    public function upgradeTips(){
+        $result = curl_get(config('app.plugin_store.domain_name').'index/upgradeTips');
+        $result = json_decode($result,true);
+        if (!$result['code']) {
+            return $this->apiReturn(0,[],'');
+        }
+        $path = \think\facade\App::getRootPath() . '../docker/data/update.lock';
+        // 获取当前版本号
+        $version = file_get_contents($path);
+        $news_version = $result['data']['news_version'];
+        if ($version < $news_version) {
+            return $this->apiReturn(1,[],"当前系统最新版本为：{$news_version},是否升级");
+        } else {
+            return $this->apiReturn(0,[],"update.lock文件不存在");
+        }
+    }
 }

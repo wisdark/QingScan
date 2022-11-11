@@ -5,13 +5,14 @@ namespace app\controller;
 
 
 use think\facade\Db;
+use think\Request;
 
 class ToExamine extends Common
 {
-    public function fortify()
+    public function fortify(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -34,10 +35,10 @@ class ToExamine extends Common
         }
     }
 
-    public function process_safe()
+    public function process_safe(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -56,10 +57,10 @@ class ToExamine extends Common
         }
     }
 
-    public function kunlun()
+    public function kunlun(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -74,18 +75,17 @@ class ToExamine extends Common
         if (!$info) {
             return $this->apiReturn(0, [], '数据不存在');
         }
-
-        if (Db::connect('kunlun')->table("index_scanresulttask")->where('id', $id)->update(['check_status' => $check_status])) {
+        if (Db::connect('kunlun')->table("index_scanresulttask")->where('id', $id)->update(['check_status'=>$check_status,'update_time'=>date('Y-m-d H:i:s',time())])) {
             return $this->apiReturn(1, [], '操作成功');
         } else {
             return $this->apiReturn(0, [], '操作失败');
         }
     }
 
-    public function semgrep()
+    public function semgrep(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -108,10 +108,10 @@ class ToExamine extends Common
         }
     }
 
-    public function xray()
+    public function xray(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -134,10 +134,10 @@ class ToExamine extends Common
         }
     }
 
-    public function awvs()
+    public function awvs(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -156,10 +156,10 @@ class ToExamine extends Common
         }
     }
 
-    public function node()
+    public function node(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -178,10 +178,10 @@ class ToExamine extends Common
         }
     }
 
-    public function auth_rule_auth()
+    public function auth_rule_auth(Request $request)
     {
-        $auth_rule_id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $auth_rule_id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$auth_rule_id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -200,10 +200,10 @@ class ToExamine extends Common
         }
     }
 
-    public function auth_rule_status()
+    public function auth_rule_status(Request $request)
     {
-        $auth_rule_id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $auth_rule_id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$auth_rule_id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -222,10 +222,10 @@ class ToExamine extends Common
         }
     }
 
-    public function code_webshell()
+    public function code_webshell(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -244,10 +244,10 @@ class ToExamine extends Common
         }
     }
 
-    public function plugin_result()
+    public function plugin_result(Request $request)
     {
-        $id = getParam('id');
-        $check_status = intval(getParam('check_status'));
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
         if (!$id) {
             return $this->apiReturn(0, [], '缺少参数');
         }
@@ -260,6 +260,28 @@ class ToExamine extends Common
         }
 
         if (Db::name('plugin_scan_log')->where('id', $id)->update(['check_status' => $check_status])) {
+            return $this->apiReturn(1, [], '操作成功');
+        } else {
+            return $this->apiReturn(0, [], '操作失败');
+        }
+    }
+
+    public function mobsfscan(Request $request)
+    {
+        $id = $request->param('id');
+        $check_status = intval($request->param('check_status'));
+        if (!$id) {
+            return $this->apiReturn(0, [], '缺少参数');
+        }
+        if (!in_array($check_status, [0, 1,2])) {
+            return $this->apiReturn(0, [], '请先选择审核状态');
+        }
+        $info = Db::name('mobsfscan')->where('id', $id)->find();
+        if (!$info) {
+            return $this->apiReturn(0, [], '数据不存在');
+        }
+
+        if (Db::name('mobsfscan')->where('id', $id)->update(['check_status' => $check_status])) {
             return $this->apiReturn(1, [], '操作成功');
         } else {
             return $this->apiReturn(0, [], '操作失败');

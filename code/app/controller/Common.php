@@ -172,6 +172,16 @@ class Common extends BaseController
         return $projectList;
     }
 
+    public function getMyCodeList(){
+        $where[] = ['is_delete','=',0];
+        if ($this->auth_group_id != 5 && !in_array($this->userId, config('app.ADMINISTRATOR'))) {
+            $where[] = ['user_id', '=', $this->userId];
+        }
+        //查询项目数据
+        $projectArr = Db::table('code')->where($where)->field('id,name')->select()->toArray();
+        return array_column($projectArr, 'name', 'id');
+    }
+
 
     /**
      * 使用PHPEXECL导入
@@ -275,8 +285,23 @@ class Common extends BaseController
         }
     }
 
-    public function del_that(){
-
+    // 批量审核
+    public function batch_audit_that($request,$table){
+        $ids = $request->param('ids');
+        $check_status = $request->param('check_status');
+        $this->addUserLog('mobsfscan',"批量审核数据[$ids]");
+        if (!$ids) {
+            return $this->apiReturn(0,[],'请先选择要审核的数据');
+        }
+        $map[] = ['id','in',$ids];
+        if ($this->auth_group_id != 5 && !in_array($this->userId, config('app.ADMINISTRATOR'))) {
+            $map[] = ['user_id', '=', $this->userId];
+        }
+        if (Db::name($table)->where($map)->update(['check_status'=>$check_status,'update_time'=>date('Y-m-d H:i:s',time())])) {
+            return $this->apiReturn(1,[],'审核成功');
+        } else {
+            return $this->apiReturn(0,[],'审核失败');
+        }
     }
 
     // 批量删除
@@ -291,9 +316,9 @@ class Common extends BaseController
             $map[] = ['user_id', '=', $this->userId];
         }
         if (Db::name($table)->where($map)->delete()) {
-            return $this->apiReturn(1,[],'批量删除成功');
+            return $this->apiReturn(1,[],'删除成功');
         } else {
-            return $this->apiReturn(0,[],'批量删除失败');
+            return $this->apiReturn(0,[],'删除失败');
         }
     }
 

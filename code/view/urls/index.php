@@ -8,6 +8,7 @@
         'method' => 'get',
         'inputs' => [
             ['type' => 'text', 'name' => 'search', 'placeholder' => '请输入要搜索的关键字'],
+            ['type' => 'select', 'name' => 'app_id', 'options' => $projectList, 'frist_option' => '项目列表'],
         ],
         'btnArr' => [
             ['text' => '添加URL', 'ext' => [
@@ -17,21 +18,20 @@
         ]]; ?>
     {include file='public/search' /}
 
-
     <div class="row tuchu">
         <div class="col-md-12 ">
             {include file='public/batch_del' /}
             <table class="table table-bordered table-hover table-striped">
                 <thead>
                 <tr>
-                    <th>
+                    <th width="70">
                         <label>
                             <input type="checkbox" value="-1" onclick="quanxuan(this)">全选
                         </label>
                     </th>
                     <th>ID</th>
+                    <th>所属项目</th>
                     <th>URL</th>
-                    <th>APP</th>
                     <th>ICP</th>
                     <th>邮箱</th>
                     <th>身份证号码</th>
@@ -51,11 +51,11 @@
                             </label>
                         </td>
                         <td><?php echo $value['id'] ?></td>
+                        <td>
+                            <a href="<?php echo url('app/index', ['id' => $value['app_id']]) ?>"><?php echo isset($projectList[$value['app_id']]) ? $projectList[$value['app_id']] : '' ?></a>
+                        </td>
                         <td class="ellipsis-type"><a href="<?php echo $value['url'] ?>"
                                                      target="_blank"><?php echo $value['url'] ?></a></td>
-                        <td>
-                            <a href="<?php echo U('urls/index', ['app_id' => $value['app_id']]) ?>"><?php echo isset($appArr[$value['app_id']]) ? $appArr[$value['app_id']] : '' ?></a>
-                        </td>
                         <td><?php echo $value['icp'] ?></td>
                         <td><?php echo $value['email'] ?></td>
                         <td><?php echo $value['id_card'] ?></td>
@@ -66,8 +66,8 @@
                         <td><?php echo $value['create_time'] ?></td>
                         <!--<td><?php /*echo date('m-d H:i', strtotime($value['sqlmap_scan_time'])) */?></td>-->
                         <td>
-                            <a href="<?php echo url('xray/details', ['id' => $value['id']]) ?>"
-                               class="btn btn-sm btn-outline-primary">查看漏洞</a>
+                            <!--<a href="<?php /*echo url('xray/details', ['id' => $value['id']]) */?>"
+                               class="btn btn-sm btn-outline-primary">查看漏洞</a>-->
                             <a href="<?php echo url('urls/del', ['id' => $value['id']]) ?>"
                                class="btn btn-sm btn-outline-danger">删除</a>
                         </td>
@@ -79,45 +79,3 @@
     {include file='public/fenye' /}
 </div>
 {include file='public/footer' /}
-
-<script>
-    function quanxuan(obj){
-        var child = $('.table').find('.ids');
-        child.each(function(index, item){
-            if (obj.checked) {
-                item.checked = true
-            } else {
-                item.checked = false
-            }
-        })
-    }
-
-    function batch_del(){
-        var child = $('.table').find('.ids');
-        var ids = ''
-        child.each(function(index, item){
-            if (item.value != -1 && item.checked) {
-                if (ids == '') {
-                    ids = item.value
-                } else {
-                    ids = ids+','+item.value
-                }
-            }
-        })
-
-        $.ajax({
-            type: "post",
-            url: "<?php echo url('batch_del')?>",
-            data: {ids: ids},
-            dataType: "json",
-            success: function (data) {
-                alert(data.msg)
-                if (data.code == 1) {
-                    window.setTimeout(function () {
-                        location.reload();
-                    }, 2000)
-                }
-            }
-        });
-    }
-</script>

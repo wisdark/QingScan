@@ -13,7 +13,7 @@ $typeArr = [
         <div class="col-md-4">
             <h5 style="align-content: center"><span style="color:#888">id:</span> <?php echo $info['id'] ?></h5></div>
         <div class="col-md-4">
-            <h5><span style="color:#888">状态:</span> <?php echo $info['status'] ?></h5></div>
+            <h5><span style="color:#888">状态:</span> <?php echo $info['status']==1?'启用':'暂停' ?></h5></div>
         <div class="col-md-4">
             <h5><span style="color:#888">名称: </span><?php echo $info['name'] ?></h5></div>
         <div class="col-md-4">
@@ -21,8 +21,6 @@ $typeArr = [
         <div class="col-md-4">
             <h5><span style="color:#888">创建: </span><?php echo $info['create_time'] ?></h5></div>
 
-        <div class="col-md-4">
-            <h5><span style="color:#888">是否删除:</span> <?php echo $info['is_delete'] ?></h5></div>
         <div class="col-md-4">
             <h5><span style="color:#888">用户名称:</span> <?php echo $info['username'] ?></h5></div>
         <div class="col-md-4">
@@ -34,7 +32,7 @@ $typeArr = [
         <div class="col-md-4">
             <h5><span style="color:#888">whatweb(指纹扫描):</span> <?php echo $info['whatweb_scan_time'] ?></h5></div>
         <div class="col-md-4">
-            <h5><span style="color:#888">V2子域名扫描时间:</span> <?php echo $info['subdomain_scan_time'] ?></h5></div>
+            <h5><span style="color:#888">oneforall子域名扫描时间:</span> <?php echo $info['subdomain_scan_time'] ?></h5></div>
         <div class="col-md-4">
             <h5><span style="color:#888">获取基本信息时间: </span><?php echo $info['screenshot_time'] ?></h5></div>
         <div class="col-md-4">
@@ -65,6 +63,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'rad']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('urls/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -107,6 +107,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'crawlergoScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('app_crawlergo/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -137,6 +139,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'awvsScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('bug/awvs', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -174,6 +178,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'nucleiScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('app_nuclei/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -206,6 +212,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'xray']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('xray/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -281,6 +289,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'whatweb']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('whatweb/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -317,6 +327,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'sqlmapScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('sqlmap/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -357,6 +369,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'subdomainScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('one_for_all/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -366,6 +380,7 @@ $typeArr = [
                 <th>端口</th>
                 <th>ip</th>
                 <th>状态</th>
+                <th>创建时间</th>
             </tr>
             </thead>
             <?php foreach ($oneforall as $value) { ?>
@@ -375,6 +390,7 @@ $typeArr = [
                     <td><?php echo $value['port'] ?></td>
                     <td><?php echo $value['ip'] ?></td>
                     <td><?php echo $value['status'] ?></td>
+                    <td><?php echo $value['create_time'] ?></td>
                 </tr>
             <?php } ?>
             <?php if (empty($oneforall)) { ?>
@@ -391,6 +407,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'sshScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('hydra/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -425,6 +443,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'dirmapScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('dirmap/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -456,10 +476,12 @@ $typeArr = [
     </div>
     <div class="col-auto  tuchu_col">
         <h4 class="text-center">
-            Nmap列表
+            masscan列表
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'NmapPortScan']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('host_port/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -475,7 +497,6 @@ $typeArr = [
                 <th>os</th>
                 <th>html</th>
                 <th>headers</th>
-                <th>is_delete</th>
                 <th>scan_time</th>
             </tr>
             </thead>
@@ -492,7 +513,6 @@ $typeArr = [
                     <td><?php echo $value['os'] ?></td>
                     <td><?php echo $value['html'] ?></td>
                     <td><?php echo $value['headers'] ?></td>
-                    <td><?php echo $value['is_delete'] ?></td>
                     <td><?php echo $value['scan_time'] ?></td>
                 </tr>
             <?php } ?>
@@ -510,6 +530,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'vulmapPocTest']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('vulmap/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -565,6 +587,8 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'autoAddHost']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('host/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -583,8 +607,6 @@ $typeArr = [
                 <th>hydra_scan_time</th>
                 <th>port_scan_time</th>
                 <th>target</th>
-                <th>is_delete</th>
-                <th>user_id</th>
             </tr>
             </thead>
             <?php foreach ($host as $value) { ?>
@@ -603,8 +625,6 @@ $typeArr = [
                     <td><?php echo $value['hydra_scan_time'] ?></td>
                     <td><?php echo $value['port_scan_time'] ?></td>
                     <td><?php echo $value['ip_scan_time'] ?></td>
-                    <td><?php echo $value['is_delete'] ?></td>
-                    <td><?php echo $value['user_id'] ?></td>
                 </tr>
             <?php } ?>
             <?php if (empty($host)) { ?>
@@ -651,19 +671,21 @@ $typeArr = [
             <a href="<?php echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'plugin']) ?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>
+            <a href="<?php echo url('plugin_result/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
             <tr>
                 <th>ID</th>
-                <th>所属项目</th>
                 <th>插件名称</th>
+                <th>内容</th>
             </tr>
             </thead>
             <?php foreach ($pluginScanLog as $value) { ?>
                 <tr>
                     <td><?php echo $value['id'] ?></td>
-                    <td><?php echo $value['plugin_id'] ?></td>
+                    <td><?php echo $value['plugin_name'] ?></td>
                     <td><?php echo htmlspecialchars($value['content']) ?>/td>
                 </tr>
             <?php } ?>
@@ -680,6 +702,8 @@ $typeArr = [
             <!--<a href="<?php /*echo url('app/rescan', ['id'=>$info['id'],'tools_name' => 'plugin']) */?>"
                onClick="return confirm('确定要清空该工具数据重新扫描吗?')"
                class="btn btn-sm btn-outline-warning">重新扫描</a>-->
+            <a href="<?php echo url('github_keyword_monitor_notice/index', ['app_id' => $info['id']]) ?>"
+               class="btn btn-sm btn-outline-primary" style="float: right">查看更多</a>
         </h4>
         <table class="table table-bordered table-hover table-striped">
             <thead>
@@ -695,7 +719,7 @@ $typeArr = [
             <?php foreach ($monitor_notice as $value) { ?>
                 <tr>
                     <td><?php echo $value['id'] ?></td>
-                    <td><?php echo $value['title'] ?></td>
+                    <td><?php echo $value['keyword'] ?></td>
                     <td><?php echo $value['name'] ?></td>
                     <td><?php echo $value['path'] ?></td>
                     <td><?php echo $value['html_url'] ?></td>
@@ -704,7 +728,7 @@ $typeArr = [
             <?php } ?>
             <?php if (empty($app_dismap)) { ?>
                 <tr>
-                    <td colspan="3" class="text-center">暂无数据</td>
+                    <td colspan="6" class="text-center">暂无数据</td>
                 </tr>
             <?php } ?>
         </table>
