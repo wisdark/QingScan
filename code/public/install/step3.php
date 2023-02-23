@@ -26,17 +26,21 @@ use think\facade\Db;
                 <div>
                     <?php
                     error_reporting(E_ALL);
-                    //检查数据库参数是否正确，修改系统配置文件
+                    // 检查数据库参数是否正确，修改系统配置文件
                     writingConf();
 
                     //更新python配置
                     setPythonConfig();
 
-                    //从SQL文件中提取SQL语句
-                    $sqlArr = getSQLArr();
-
-                    //批量执行SQL语句
-                    batchExecuteSql($sqlArr);
+                    try {
+                        //从SQL文件中提取SQL语句
+                        $sqlArr = getSQLArr();
+                        //批量执行SQL语句
+                        batchExecuteSql($sqlArr);
+                    }catch (Exception $e){
+                        echo $e->getMessage();
+                        exit();
+                    }
 
                     addOldData();
                     ?>
@@ -64,7 +68,7 @@ function setPythonConfig(){
 
 
 function batchExecuteSql($sqlArr)
-{
+{;
     foreach ($sqlArr as $sql) {
         $result = Db::execute($sql);
         if ($result === 0) {
@@ -84,9 +88,8 @@ function addOldData()
     $password = '' === $str ? '' : md5(md5(sha1($str) . 'xt1l3a21uo0tu2oxtds3wWte23dsxix2d3in7yuhui32yuapatmdsnnzdazh1612ongxxin2z') . '###xt');;
 
     //导入最新的数据格式
-    $sql = "UPDATE  user SET username=?,password=? where id = 1";
-
-    $result = Db::connect('mysql')->execute($sql,[$_POST['username'],$password]);
+    $sql = "UPDATE user SET username=?,password=? where id = 1";
+    $result = Db::name('user')->where('id',1)->update(['username'=>$_POST['username'],'password'=>$password,'update_time'=>time()]);
     if ($result) {
         echo " <a class=\"btn btn-lg btn-outline-success\" href='/' >导入数据成功!,进入首页</a>";
         file_put_contents('install.lock', '');
@@ -109,7 +112,7 @@ function addOldData()
 
 function getSqlArr()
 {
-    $str = file_get_contents("./qingscan.sql");
+    $str = file_get_contents('./qingscan.sql');
     //匹配删表语句
     $zhengze = "/DROP.*;/Us";
     preg_match_all($zhengze, $str, $shanbiao);
@@ -147,12 +150,12 @@ function writingConf()
     $config['connections']['mysql']['database'] = $_POST['DB_NAME'];
     $config['connections']['mysql']['charset'] = $_POST['DB_CHARSET'];
 
-    $config['connections']['kunlun']['hostname'] = $_POST['DB_HOST'];
+    /*$config['connections']['kunlun']['hostname'] = $_POST['DB_HOST'];
     $config['connections']['kunlun']['hostport'] = $_POST['DB_PORT'];
     $config['connections']['kunlun']['username'] = $_POST['DB_USER'];
     $config['connections']['kunlun']['password'] = $_POST['DB_PASS'];
     $config['connections']['kunlun']['database'] = 'kunlun';
-    $config['connections']['kunlun']['charset'] = $_POST['DB_CHARSET'];
+    $config['connections']['kunlun']['charset'] = $_POST['DB_CHARSET'];*/
 
     $database = "<?php \n";
     $database .= 'return ' . var_export($config, true) . ';';
