@@ -1,14 +1,6 @@
 </div>
-<footer class="footer navbar-fixed-bottom">
-    <div class=" footer-bottom">
-        <ul class="list-inline text-center">
-            <li style="color:red;">QingScan 产品仅授权你在遵守《<a
-                        href="https://baike.baidu.com/item/%E4%B8%AD%E5%8D%8E%E4%BA%BA%E6%B0%91%E5%85%B1%E5%92%8C%E5%9B%BD%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E6%B3%95"
-                        target="_blank">中华人民共和国网络安全法</a>》前提下使用，请不要擅自对未获得授权的目标进行安全测试！！！
-            </li>
-        </ul>
-    </div>
-</footer>
+</div>
+
 <script>
     function quanxuan(obj) {
         var child = $('.table').find('.ids');
@@ -20,6 +12,50 @@
             }
         })
     }
+
+    // Function to get current page path
+    function getCurrentPagePath() {
+        var url = window.location.href;
+        var path = url.match(/\/\/[^\/]*(\/[^?#]*)/);
+        if (path && path.length > 1) {
+            return path[1].replace(/\.html.*$/, '');
+        }
+        return '';
+    }
+
+    // Function to add 'active' class to A links containing the path
+    function addActiveClassToLinks(path) {
+        $('#leftMenu a').each(function () {
+            if ($(this).attr('href').indexOf(path) !== -1) {
+                $(this).addClass('active');
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        // 获取所有具有 auto-height-textarea 类的 textarea 元素
+        var textareas = document.getElementsByClassName("auto-height-textarea");
+
+        // 为每个 textarea 添加 input 事件监听器
+        Array.from(textareas).forEach(function (textarea) {
+            textarea.addEventListener("input", function () {
+                // 自动调整高度
+                this.style.height = "auto";
+                this.style.height = this.scrollHeight + "px";
+            });
+
+            // 页面加载完毕后，首次触发 input 事件，以便调整初始高度
+            textarea.dispatchEvent(new Event("input"));
+        });
+
+    });
+
+
+    // Call the functions
+    var currentPagePath = getCurrentPagePath();
+    addActiveClassToLinks(currentPagePath);
+
+
 </script>
 </body>
 </html>

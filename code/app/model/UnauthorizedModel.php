@@ -7,12 +7,10 @@ use think\facade\Db;
 
 class UnauthorizedModel extends BaseModel
 {
-    public static function unauthorizeScan(){
-        ini_set('max_execution_time', 0);
-        while (true) {
-            processSleep(1);
+    public static function unauthorizeScan()
+    {
             $app_list = Db::name('host')->whereTime('unauthorize_scan_time', '<=', date('Y-m-d H:i:s', time() - (86400 * 15)))->limit(10)->orderRand()->field('id,host,app_id')->select()->toArray();
-            $file_path = '/data/tools/Scanunauthorized_2.0/';
+            $file_path = './extend/tools/Scanunauthorized_2.0/';
             $filename = "{$file_path}result.txt";
             $host = "{$file_path}host.txt";
             file_put_contents($host,'');
@@ -27,7 +25,7 @@ class UnauthorizedModel extends BaseModel
                 }
 
                 PluginModel::addScanLog($v['id'], __METHOD__, 1);
-                self::scanTime('host',$v['id'],'unauthorize_scan_time');
+                
 
                 $cmd = "cd {$file_path}  && python3 ./Scanunauthorized_2.0.py";
                 systemLog($cmd);
@@ -53,7 +51,5 @@ class UnauthorizedModel extends BaseModel
                 }
                 PluginModel::addScanLog($v['id'], __METHOD__, 1,1);
             }
-            sleep(10);
-        }
     }
 }

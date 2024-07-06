@@ -1,7 +1,126 @@
 <?php
+
+$qnrFile = dirname(__FILE__) . "/qnr/functions.php";
+if (file_exists($qnrFile)) require $qnrFile;
+
+
 // 应用公共文件
 $branch = empty(getenv("branch")) ? 'master' : getenv("branch");
+function formatTimestampWithinRange($timestamp, $years = 3)
+{
+    // 获取当前时间的时间戳
+    $currentTimestamp = time();
 
+    // 计算允许的时间戳上下限
+    $minTimestamp = $currentTimestamp - ($years * 365 * 24 * 60 * 60);
+    $maxTimestamp = $currentTimestamp;
+
+    // 判断是否在允许的时间戳范围内
+    if ($timestamp >= $minTimestamp && $timestamp <= $maxTimestamp) {
+        // 将时间戳转换为时间格式，可根据需要自定义格式
+        $formattedTime = date('Y-m-d H:i:s', $timestamp);
+        return $formattedTime;
+    } else {
+        // 不在时间戳范围内则返回原时间戳
+        return $timestamp;
+    }
+}
+
+
+function formatJson($json)
+{
+    if (is_json($json) === false) return $json;
+    $result = '';
+    $indentation = 0;
+    $inQuotes = false;
+
+    for ($i = 0; $i < strlen($json); $i++) {
+        $char = $json[$i];
+
+        if ($inQuotes) {
+            $result .= $char;
+            if ($char === '"') {
+                if ($i > 0 && $json[$i - 1] !== '\\') {
+                    $inQuotes = false;
+                }
+            }
+        } else {
+            switch ($char) {
+                case '{':
+                case '[':
+                    $result .= $char . "\n" . str_repeat('    ', $indentation + 1);
+                    $indentation++;
+                    break;
+                case '}':
+                case ']':
+                    $indentation--;
+                    $result .= "\n" . str_repeat('    ', $indentation) . $char;
+                    break;
+                case ',':
+                    $result .= $char . "\n" . str_repeat('    ', $indentation);
+                    break;
+                case ':':
+                    $result .= $char . ' ';
+                    break;
+                case '"':
+                    $result .= $char;
+                    $inQuotes = true;
+                    break;
+                default:
+                    $result .= $char;
+            }
+        }
+    }
+
+    return $result;
+}
+
+function portIsOpen($ip, $port)
+{
+    $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+    if ($sock === false) return false;
+
+    socket_set_nonblock($sock);
+    try {
+        $result = @socket_connect($sock, $ip, $port);
+    } catch (Exception $e) {
+        $result = false;
+    }
+    if ($result === false && socket_last_error($sock) != SOCKET_EINPROGRESS) {
+        // 处理连接失败的情况
+        socket_close($sock);
+        return false;
+    }
+
+    $r = array($sock);
+    $w = array($sock);
+    $f = array($sock);
+    $return = socket_select($r, $w, $f, 1);
+    socket_close($sock);
+
+    return ($return == 1);
+}
+
+function getMainDomain($subdomain)
+{
+    $tlds = ['com', 'net', 'org', 'cn', 'edu', 'gov', 'co'];
+
+    $parts = explode('.', $subdomain);
+    $numParts = count($parts);
+
+    // 判断是否满足 "x.y" 的格式
+    if ($numParts >= 2) {
+        // 判断倒数第二部分是否为 TLD 后缀
+        if (in_array($parts[$numParts - 2], $tlds)) {
+            $mainDomain = implode('.', array_slice($parts, -3));
+        } else {
+            $mainDomain = implode('.', array_slice($parts, -2));
+        }
+        return $mainDomain;
+    }
+
+    return null;
+}
 
 function getRabbitMq()
 {
@@ -15,7 +134,7 @@ function getFileType(array $fileList)
     $typeList = [];
     foreach ($fileList as $val) {
         $fileInfo = pathinfo($val);
-        if(!isset($fileInfo['extension'])){
+        if (!isset($fileInfo['extension'])) {
             continue;
         }
         $typeList[$fileInfo['extension']] = $fileInfo['extension'];
@@ -27,6 +146,7 @@ function getFileType(array $fileList)
 function getGitAddr($prName, $sshUrl, $filePath, $line = "")
 {
     // 判断类型
+    $domain_name = parse_url($sshUrl)['host'];
     if (preg_match('/gitee\.com/', $sshUrl)) {   // 码云
         $path = substr($sshUrl, strripos($sshUrl, ':') + 1, strlen($sshUrl));
         $domain_name = "https://gitee.com/{$path}";
@@ -42,14 +162,20 @@ function getGitAddr($prName, $sshUrl, $filePath, $line = "")
     }
     return $url;
 
-    /*$url = str_replace(':', '/', $sshUrl);
-    $url = str_replace('git@', 'http://', $url);
-    $url = str_replace('.git', $gitlabPath, $url);
-    if ($line != "") {
-        $url .= "#L{$line}";
-    }*/
+}
 
-    return $url;
+function getGitProjectName($cloneUrl)
+{
+    // 检查是否是SSH格式的克隆地址
+    if (preg_match('/^git@[\w.]+:(\w+)\/([\w.-]+)\.git$/', $cloneUrl, $matches)) {
+        return $matches[2];
+    } // 检查是否是HTTPS格式的克隆地址
+    elseif (preg_match('/^https?:\/\/[\w.]+\/(\w+)\/([\w.-]+)\.git$/', $cloneUrl, $matches)) {
+        return $matches[2];
+    } // 其他未知格式的地址，返回空或您认为合适的默认值
+    else {
+        return null;
+    }
 }
 
 function getSavePath($url, $tool = "xray", $id)
@@ -92,6 +218,7 @@ function getMysql()
 
 use app\model\BaseModel;
 use app\model\ConfigModel;
+use Symfony\Component\Yaml\Yaml;
 use think\facade\Db;
 use think\facade\Log;
 
@@ -152,25 +279,19 @@ function getArrayField(array $data, array $fields)
 function addlog($content, $out = false)
 {
     $content1 = $content;
-    $content = ['app' => 'QingScan', 'msg' => $content, 'time' => date('Y-m-d H:i:s')];
-    $data = json_encode($content, JSON_UNESCAPED_UNICODE) . PHP_EOL;
 
-    $date = date('Y-m-d');
-//    file_put_contents("./logs/log{$date}.json", $data . PHP_EOL, FILE_APPEND);
-    //Log::write($data . PHP_EOL);
     $dataArr = [
-        'app' => 'QingScan',
+        'app' => env('website','QingScan'),
         'content' => is_array($content1) ? var_export($content1, true) : $content1,
     ];
 
     $dataArr['content'] = substr($dataArr['content'], 0, 4999);
-    //echo '---'.strlen($dataArr['content']).'---';
     \think\facade\Db::name('log')->insert($dataArr);
     //删除5天前的日志
     $endTime = date('Y-m-d', time() - 86400 * 5);
     Db::table('log')->whereTime('create_time', '<=', $endTime)->delete();
 
-    if ($out or is_cli()) {
+    if ($out) {
         echo var_export($content, true) . PHP_EOL;
     }
 }
@@ -212,21 +333,11 @@ function getRealSize($size)
 
 function downCode($codePath, $prName, $codeUrl, $is_private = 0, $username = '', $password = '', $key = '')
 {
-    if ($is_private) {  // 私有仓库
-        preg_match('/^(http|https):\/\//', $codeUrl, $agreement);
-        if (!$agreement) {   // ssh拉取
-            $filename = "{$codePath}/id_rsa/";
-            if (!file_exists($filename)) {
-                mkdir($filename, 0777);
-            }
-            $filename .= uniqid() . '_id_rsa';
-            file_put_contents($filename, $key);
-            systemLog("chmod 600 {$filename}");
-            systemLog('git config --global core.sshCommand "ssh -i ' . $filename . '"');
-        } else {
-            $codeUrl = "{$agreement[0]}{$username}:{$password}@" . substr($codeUrl, 8, strlen($codeUrl));
-        }
+    if (!file_exists($codePath)) mkdir($codePath, 0777, true);
+    if (function_exists("addBasicAuthToURL")) {
+        $codeUrl = addBasicAuthToURL($codeUrl, env('gitlab.username'), env('gitlab.password'));
     }
+
     if (!file_exists("{$codePath}/{$prName}")) {
         $cmd = "cd {$codePath}/ && git clone --depth=1 {$codeUrl}  $prName";
         systemLog($cmd);
@@ -238,6 +349,7 @@ function downCode($codePath, $prName, $codeUrl, $is_private = 0, $username = '',
 
 function cleanString($string)
 {
+    if (empty($string)) return $string;
     //$string = strtolower($string);
     $string = preg_replace("/[^a-z0-9A-Z-_]/i", "", $string);
 
@@ -261,10 +373,11 @@ function systemLog($shell, $showRet = true)
 {
     //转换成字符串
     $remark = "即将执行命令：{$shell}";
+    echo $remark . PHP_EOL;
     addlog($remark);
     //记录日志
     exec($shell, $output);
-    addlog(["命令执行结果", $shell, $output]);
+    addlog(["命令执行结果:" . $shell => $output]);
     if ($output && $showRet) {
         echo implode("\n", $output) . PHP_EOL;
     }
@@ -627,6 +740,7 @@ function ucenter_md5($str, $key = 'lyj0p2wtexiax32ijn23pantnyzdayu32hui3dlayuan1
  */
 function think_decrypt($data, $key = '')
 {
+    if ($data === null) return '';
     $key = md5(empty($key) ? config('app.UC_AUTH_KEY') : $key);
     $data = str_replace(array('-', '_'), array('+', '/'), $data);
     $mod4 = strlen($data) % 4;
@@ -965,7 +1079,7 @@ function getUninstallPath($name)
     }
     // 获取tools工具中符合的数据
     $tools = [];
-    //$tools_path = '/data/tools/plugins/';
+    //$tools_path = './extend/tools/plugins/';
     $tools_path = $app . '../../tools/plugins/';
     foreach (scandir($tools_path) as $value) {
         if ($value != '.' && $value != '..') {
@@ -1162,6 +1276,16 @@ function readCsv($uploadfile = '')
     return $data;
 }
 
+function moveKeyToFront($array, $keyToMove)
+{
+    if (array_key_exists($keyToMove, $array)) {
+        $valueToMove = $array[$keyToMove];
+        unset($array[$keyToMove]);
+        $array = array($keyToMove => $valueToMove) + $array;
+    }
+    return $array;
+}
+
 /**
  * 获取code表信息
  * @param int $id
@@ -1221,6 +1345,34 @@ function getProcessNum()
     }
     //返回数量
     return count($result);
+}
+
+function is_json($string)
+{
+    if ($string === null) return false;
+    json_decode($string);
+    return (json_last_error() == JSON_ERROR_NONE);
+}
+
+function yamlDump(array $data): string
+{
+    return Yaml::dump($data);
+}
+
+function isIPv4($ip)
+{
+    $parts = explode('.', $ip);
+    if (count($parts) !== 4) {
+        return false;
+    }
+
+    foreach ($parts as $part) {
+        if (!is_numeric($part) || $part < 0 || $part > 255) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function processSleep($time)

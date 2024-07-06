@@ -11,7 +11,7 @@ class PluginModel extends BaseModel
 
     public static function execPlugin()
     {
-        ini_set('max_execution_time', 0);
+
         while (true) {
             $list = Db::name('app')->where('is_delete', 0)->limit(1)->orderRand()->select()->toArray();
             foreach ($list as $v) {
@@ -50,9 +50,7 @@ class PluginModel extends BaseModel
 
     public static function deleteCodeDir()
     {
-        $codeCheck = "/data/codeCheck";
-        while (true) {
-            //1. 获取目录下的文件列表
+        $codeCheck = "./data/codeCheck";
             $resource = opendir($codeCheck);
             while ($file = readdir($resource)) {
                 if ($file == '.' || $file == '..') {
@@ -85,13 +83,12 @@ class PluginModel extends BaseModel
                     systemLog($cmd);
                 }
             }
-            sleep(60);
-        }
+
     }
 
     public static function getFortifyScanDir()
     {
-        $cmd = "ps -ef | grep -v def  | awk '{print $22}' | grep '/data/codeCheck'";
+        $cmd = "ps -ef | grep -v def  | awk '{print $22}' | grep './extend/codeCheck'";
         $str = exec($cmd);
         return $str;
     }
@@ -149,8 +146,7 @@ class PluginModel extends BaseModel
             addlog(["运行的自定义脚本不存在", $name, $scanType]);
             die;
         }
-        ini_set('max_execution_time', 0);
-        while (true) {
+
             //根据插件名字和扫描类型获取需要扫描的目标
             $list = self::getScanList($name, $scanType);
             foreach ($list as $v) {
@@ -215,8 +211,7 @@ class PluginModel extends BaseModel
 
                 Db::table("plugin_scan_log")->extra('IGNORE')->insert($data);
             }
-            sleep(10);
-        }
+
     }
 
     private static function getScanList(string $name, int $scanType)

@@ -14,7 +14,7 @@ $dengjiArr = ['Low', 'Medium', 'High', 'Critical'];
         'btnArr' => [
             ['text' => '添加', 'ext' => [
                 "href" => url('add'),
-                "class" => "btn btn-outline-success"
+                "class" => "btn btn-sm btn-outline-secondary"
             ]]
         ]];
 
@@ -24,8 +24,8 @@ $dengjiArr = ['Low', 'Medium', 'High', 'Critical'];
 <div class="col-md-12 ">
     <div class="row tuchu">
         <div class="col-md-12 ">
-            <table class="table table-bordered table-hover table-striped">
-                <thead>
+            <table class="table  table-hover table-sm table-borderless">
+                <thead class="table-light">
                 <tr>
                     <th>ID</th>
                     <th>插件类型</th>
@@ -56,7 +56,7 @@ $dengjiArr = ['Low', 'Medium', 'High', 'Critical'];
                         <td><?php echo $value['create_time'] ?></td>
                         <td>
                             <a href="<?php echo url('edit',['id'=>$value['id']])?>"
-                               class="btn btn-sm btn-outline-success">编辑</a>
+                               class="btn btn-sm btn-outline-secondary">编辑</a>
                             <a href="<?php echo url('del',['id'=>$value['id']])?>" class="btn btn-sm btn-outline-danger">删除</a>
                         </td>
                     </tr>

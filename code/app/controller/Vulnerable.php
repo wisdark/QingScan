@@ -2,20 +2,22 @@
 
 namespace app\controller;
 
-use app\BaseController;
+use app\Request;
 use think\facade\Db;
 use think\facade\View;
-use think\Request;
 
 class Vulnerable extends Common
 {
 
     public function index(Request $request)
     {
-        $where[] = ['is_delete','=',0];
-        $search = $request->param('search','');
+
+        if (function_exists('autoVulnList')) autoVulnList();
+
+        $where = [];
+        $search = $request->param('search', '');
         if (!empty($search)) {
-            $where[] = ['name|cve_num|cnvd_num','like',"%{$search}%"];
+            $where[] = ['name|cve_num|cnvd_num', 'like', "%{$search}%"];
         }
         $vul_level = $request->param('vul_level'); // 等级
         $product_field = $request->param('product_field');   // 行业
@@ -23,39 +25,32 @@ class Vulnerable extends Common
         $product_cate = $request->param('product_cate');   // 平台分类
         $check_status = $request->param('check_status');   // 审核类型
         if (!empty($vul_level)) {
-            $where[] = ['vul_level','=',$vul_level];
+            $where[] = ['vul_level', '=', $vul_level];
         }
         if (!empty($product_field)) {
-            $where[] = ['product_field','=',$product_field];
+            $where[] = ['product_field', '=', $product_field];
         }
         if (!empty($product_field)) {
-            $where[] = ['product_field','=',$product_field];
+            $where[] = ['product_field', '=', $product_field];
         }
         if (!empty($product_type)) {
-            $where[] = ['product_type','=',$product_type];
+            $where[] = ['product_type', '=', $product_type];
         }
         if (!empty($product_cate)) {
-            $where[] = ['product_cate','=',$product_cate];
+            $where[] = ['product_cate', '=', $product_cate];
         }
-        if ($check_status !== null && in_array($check_status,[0,1,2])) {
-            $where[] = ['check_status','=',$check_status];
+        if ($check_status !== null && in_array($check_status, [0, 1, 2])) {
+            $where[] = ['check_status', '=', $check_status];
         }
-        if ($this->auth_group_id != 5 && !in_array($this->userId, config('app.ADMINISTRATOR'))) {
-            $where[] = ['user_id', '=', $this->userId];
-        }
+
         $pageSize = 25;
-        $list = Db::table('vulnerable')->where($where)->order('id','desc')->paginate([
-            'list_rows'=> $pageSize,//每页数量
+        $list = Db::table('vulnerable')->where($where)->order('id', 'desc')->paginate([
+            'list_rows' => $pageSize,//每页数量
             'query' => $request->param(),
         ]);
         $data = [];
         $data['list'] = $list->items();
         $data['page'] = $list->render();
-        $data['vul_level'] = Db::table('vulnerable')->where($where)->where('vul_level','<>','')->group('vul_level')->column('vul_level');
-        $data['product_field'] = Db::table('vulnerable')->where($where)->where('product_field','<>','')->group('product_field')->column('product_field');
-        $data['product_type'] = Db::table('vulnerable')->where($where)->where('product_type','<>','')->group('product_type')->column('product_type');
-        $data['product_cate'] = Db::table('vulnerable')->where($where)->where('product_cate','<>','')->group('product_cate')->column('product_cate');
-        $data['check_status_list'] = ['未审计','有效漏洞','无效漏洞'];
 
 
         return View::fetch('index', $data);
@@ -65,12 +60,12 @@ class Vulnerable extends Common
     {
         $pageSize = 25;
         $where = [];
-        $search = $request->param('search','');
+        $search = $request->param('search', '');
         if (!empty($search)) {
-            $where[] = ['name|name|cms','like',"%{$search}%"];
+            $where[] = ['name|name|cms', 'like', "%{$search}%"];
         }
-        $list = Db::table('pocsuite3')->where('is_delete','=',0)->paginate([
-            'list_rows'=> $pageSize,//每页数量
+        $list = Db::table('pocsuite3')->where('is_delete', '=', 0)->paginate([
+            'list_rows' => $pageSize,//每页数量
             'query' => $request->param(),
         ]);
         $data['list'] = $list->items();
@@ -79,29 +74,29 @@ class Vulnerable extends Common
     }
 
 
-    public function details(Request $request){
+    public function details(Request $request)
+    {
         $id = $request->param('id');
         if (!$id) {
             $this->error('参数不能为空');
         }
-        $where[] = ['id','=',$id];
-        if ($this->auth_group_id != 5 && !in_array($this->userId, config('app.ADMINISTRATOR'))) {
-            $where[] = ['user_id', '=', $this->userId];
-        }
+        $where[] = ['id', '=', $id];
+
         $info = Db::table('vulnerable')->where($where)->find();
         if (!$info) {
             $this->error('数据不存在');
         }
-        $upper_id = Db::name('vulnerable')->where('id','<',$id)->order('id','desc')->value('id');
-        $info['upper_id'] = $upper_id?:$id;
-        $lower_id = Db::name('vulnerable')->where('id','>',$id)->order('id','asc')->value('id');
-        $info['lower_id'] = $lower_id?:$id;
+        $upper_id = Db::name('vulnerable')->where('id', '<', $id)->order('id', 'desc')->value('id');
+        $info['upper_id'] = $upper_id ?: $id;
+        $lower_id = Db::name('vulnerable')->where('id', '>', $id)->order('id', 'asc')->value('id');
+        $info['lower_id'] = $lower_id ?: $id;
 
         $data['info'] = $info;
         return View::fetch('details', $data);
     }
 
-    public function add(Request $request){
+    public function add(Request $request)
+    {
         if ($request->isPost()) {
             $data['nature'] = $request->param('nature');
             $data['name'] = $request->param('name');
@@ -151,14 +146,14 @@ class Vulnerable extends Common
             $data['cause'] = $request->param('cause');
             $data['is_poc'] = $request->param('is_poc');
             $data['scan_time'] = $request->param('scan_time');
-            $data['created_at'] = date('Y-m-d H:i:s',time());
+            $data['created_at'] = date('Y-m-d H:i:s', time());
             $data['user_id'] = $this->userId;
             $data['user_name'] = $this->userInfo['nickname'];
-            if(!$data['scan_time']) {
-                $data['scan_time'] = date('Y-m-d H:i:s',time());
+            if (!$data['scan_time']) {
+                $data['scan_time'] = date('Y-m-d H:i:s', time());
             }
             if (Db::name('vulnerable')->insert($data)) {
-                $this->success('添加成功','index');
+                $this->success('添加成功', 'index');
             } else {
                 $this->error('添加失败');
             }
@@ -168,16 +163,15 @@ class Vulnerable extends Common
         }
     }
 
-    public function edit(Request $request){
+    public function edit(Request $request)
+    {
         $id = $request->param('id');
-        $this->addUserLog('缺陷列表',"修改缺陷列表数据[{$id}]");
+        $this->addUserLog('缺陷列表', "修改缺陷列表数据[{$id}]");
         if (!$id) {
             $this->error('参数错误');
         }
-        $where[] = ['id','=',$id];
-        if ($this->auth_group_id != 5 && !in_array($this->userId, config('app.ADMINISTRATOR'))) {
-            $where[] = ['user_id', '=', $this->userId];
-        }
+        $where[] = ['id', '=', $id];
+
         if ($request->isPost()) {
             $data['nature'] = $request->param('nature');
             $data['name'] = $request->param('name');
@@ -226,12 +220,12 @@ class Vulnerable extends Common
             $data['cause'] = $request->param('cause');
             $data['is_poc'] = $request->param('is_poc');
             $data['scan_time'] = $request->param('scan_time');
-            $data['updated_at'] = date('Y-m-d H:i:s',time());
-            if(!$data['scan_time']) {
-                $data['scan_time'] = date('Y-m-d H:i:s',time());
+            $data['updated_at'] = date('Y-m-d H:i:s', time());
+            if (!$data['scan_time']) {
+                $data['scan_time'] = date('Y-m-d H:i:s', time());
             }
             if (Db::name('vulnerable')->where($where)->update($data)) {
-                $this->success('编辑成功','index');
+                $this->success('编辑成功', 'index');
             } else {
                 $this->error('编辑失败');
             }
@@ -250,11 +244,9 @@ class Vulnerable extends Common
         if (!$id) {
             $this->error('参数不存在');
         }
-        $this->addUserLog('缺陷列表',"删除缺陷列表数据[{$id}]");
-        $where[] = ['id','=',$id];
-        if ($this->auth_group_id != 5 && !in_array($this->userId, config('app.ADMINISTRATOR'))) {
-            $where[] = ['user_id', '=', $this->userId];
-        }
+        $this->addUserLog('缺陷列表', "删除缺陷列表数据[{$id}]");
+        $where[] = ['id', '=', $id];
+
         if (Db::name('vulnerable')->where($where)->delete()) {
             return redirect($_SERVER['HTTP_REFERER']);
         } else {
@@ -263,8 +255,9 @@ class Vulnerable extends Common
     }
 
     // 批量删除
-    public function vulnerable_batch_del(Request $request){
-        return $this->batch_del_that($request,'vulnerable');
+    public function vulnerable_batch_del(Request $request)
+    {
+        return $this->batch_del_that($request, 'vulnerable');
     }
 
     public function pocsuite_del(Request $request)
@@ -273,12 +266,10 @@ class Vulnerable extends Common
         if (!$id) {
             $this->error('参数不存在');
         }
-        $this->addUserLog('漏洞实例',"删除漏洞实例数据[{$id}]");
-        $where[] = ['id','=',$id];
-        if ($this->auth_group_id != 5 && !in_array($this->userId, config('app.ADMINISTRATOR'))) {
-            $where[] = ['user_id', '=', $this->userId];
-        }
-        if (Db::name('pocsuite3')->where('id',$id)->delete()) {
+        $this->addUserLog('漏洞实例', "删除漏洞实例数据[{$id}]");
+        $where[] = ['id', '=', $id];
+
+        if (Db::name('pocsuite3')->where('id', $id)->delete()) {
             return redirect($_SERVER['HTTP_REFERER']);
         } else {
             $this->error('删除失败');
@@ -286,11 +277,13 @@ class Vulnerable extends Common
     }
 
     // 批量删除
-    public function pocsuite_batch_del(Request $request){
-        return $this->batch_del_that($request,'pocsuite3');
+    public function pocsuite_batch_del(Request $request)
+    {
+        return $this->batch_del_that($request, 'pocsuite3');
     }
 
-    public function add_pocsuite(Request $request){
+    public function add_pocsuite(Request $request)
+    {
         if ($request->isPost()) {
             $data = $request->post();
             $data['user_id'] = $this->userId;

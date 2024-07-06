@@ -10,21 +10,18 @@ class PythonLibraryModel extends BaseModel
 {
     public static function code_python()
     {
-        ini_set('max_execution_time', 0);
-        $codePath = "/data/codeCheck";
-        while (true) {
-            processSleep(1);
+        $codePath = "./data/codeCheck";
             $where[] = ['project_type','in',[3,6]];
             $list = self::getCodeStayScanList('python_scan_time',$where);
             foreach ($list as $k => $v) {
                 PluginModel::addScanLog($v['id'], __METHOD__, 2);
-                self::scanTime('code', $v['id'], 'python_scan_time');
+                
 
                 $value = $v;
                 $prName = cleanString($value['name']);
                 $codeUrl = $value['ssh_url'];
                 downCode($codePath, $prName, $codeUrl, $value['is_private'], $value['username'], $value['password'], $value['private_key']);
-                $filepath = "/data/codeCheck/{$prName}";
+                $filepath = "./data/codeCheck/{$prName}";
 
                 $data = [];
                 $fileArr = getFilePath($filepath, 'requirements.txt');
@@ -56,7 +53,6 @@ class PythonLibraryModel extends BaseModel
                 }
                 PluginModel::addScanLog($v['id'], __METHOD__, 1, 2);
             }
-            sleep(30);
-        }
+
     }
 }

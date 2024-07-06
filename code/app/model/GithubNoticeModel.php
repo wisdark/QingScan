@@ -11,37 +11,31 @@ class GithubNoticeModel extends BaseModel
 {
     public static function getNotice()
     {
-        ini_set('max_execution_time', 0);
-        while (true) {
-            processSleep(1);
+
             $url = 'https://github.com/advisories?page=';
             $shouye_temp = file_get_contents($url);
             if ($shouye_temp == false) {
-                addlog("获取GitHub公告首页失败,休息120秒....");
-                sleep(120);
-                continue;
+            addlog("获取GitHub公告首页失败....");
+            return false;
             }
             // 获取总页数
             $regex = '/data-total-pages=\"(\d+)\"/';
             preg_match($regex, $shouye_temp, $matches);
             if (isset($matches[1]) == false) {
-                addlog("获取GitHub公告总页数失败,休息120秒....");
-                sleep(120);
-                continue;
+            addlog("获取GitHub公告总页数失败....");
+            return false;
             }
             $i = 1;
             while ($i <= $matches[1]) {
                 $shouye = file_get_contents($url . $i);
                 if (empty($shouye)) {
-                    addlog("获取GitHub公告首页内容失败,休息10秒....");
-                    sleep(10);
+                addlog("获取GitHub公告首页内容失败....");
                     continue;
                 }
                 $regex = '/<a href="(.*?)" class="Link--primary v-align-middle no-underline h4 js-navigation-open" data-pjax="">/';
                 preg_match_all($regex, $shouye, $data);
                 if (isset($data[1]) == false) {
-                    addlog("获取GitHub公告第一页失败,休息120秒....");
-                    sleep(120);
+                addlog("获取GitHub公告第一页失败....");
                     continue;
                 }
                 foreach ($data[1] as $K => $v) {
@@ -107,10 +101,7 @@ class GithubNoticeModel extends BaseModel
                     Db::name('github_notice')->insert($data);
                 }
                 $i++;
-                sleep(3);
             }
-        }
-        addlog("爬取github_notice完成，即将休息2小时...");
-        sleep(3600 * 2);
+
     }
 }

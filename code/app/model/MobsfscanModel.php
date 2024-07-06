@@ -12,9 +12,7 @@ class MobsfscanModel extends BaseModel
         if (!is_dir($filename)) {
             mkdir($filename, 0777, true);
         }
-        ini_set('max_execution_time', 0);
-        while (true) {
-            processSleep(1);
+
             $endTime = date('Y-m-d', time() - 86400 * 15);
             $where[] = ['is_delete','=',0];
             $where[] = ['project_type','in',[5,6]];
@@ -24,11 +22,11 @@ class MobsfscanModel extends BaseModel
             foreach ($list as $k=>$v) {
                 $v['name'] = cleanString($v['name']);
                 PluginModel::addScanLog($v['id'], __METHOD__, 2);
-                self::scanTime('code', $v['id'], 'mobsfscan_scan_time');
+                
 
                 $filename .= $v['name'].'.json';
 
-                $codePath = "/data/codeCheck/".$v['name'];
+                $codePath = "./data/codeCheck/".$v['name'];
                 $cmd = "mobsfscan {$codePath} --json -o {$filename}";
                 systemLog($cmd);
                 if (!file_exists($filename)) {
@@ -66,7 +64,6 @@ class MobsfscanModel extends BaseModel
                 addlog(["mobsfscan扫描数据写入成功:" . json_encode($data)]);
                 @unlink($filename);
             }
-            sleep(30);
-        }
+
     }
 }

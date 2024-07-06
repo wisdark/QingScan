@@ -8,50 +8,43 @@ QingScan 是一款聚合扫描器，本身不生产安全扫描功能，但会�
 - GitHub：https://github.com/78778443/QingScan
 - 码云地址：https://gitee.com/songboy/QingScan
 - 详细文档：http://wiki.qingscan.site
-- 哔哩哔哩：https://space.bilibili.com/437273065
-- 官网地址：http://qingscan.site/
+- 哔哩哔哩：https://space.bilibili.com/437273065 
 
-
-## 在线演示
-在线体验地址：http://demo.qingscan.site/
-用户名：admin   密码：admin
-> 注：在线体验地址为功能演示，不会对目标实际扫描~
-
+ 
 ## 安装教程
 
-1. 需要安装docker、docker-compose 安装方法 http://get.daocloud.io/
-2. 下载代码后,启动容器`cd QingScan/ && docker-compose up -d `
-3. <b>首次</b>启动更新容器内代码`docker exec  qingscan sh -c 'cd /root/qingscan && git fetch && git reset --hard origin/main && rm code/public/install/install.lock' `
-4. 浏览器访问  http://127.0.0.1:8000/ 自动进入安装界面
-5. 安装中出现任何问题，请查看视频安装教程:https://www.bilibili.com/video/BV1rF411i7Gx
+需要再Ubuntu22.04系统下安装，其他系统请自行安装
+1. 安装PHP扩展和项目依赖
 
-#### 个别插件配置
-- fortify 涉及许可证问题，镜像内不包含，需要自己将Linux版本的fortify放到`/data/tools`文件夹中
-- AWVS 调用主要通过API，需要自己将API配置系统，配置管理中去
-- AWVS默认账户:admin@admin.com 默认密码:Admin123
-- murphysec 调用时，需要自己将墨菲安全token配置到管理中去
+```bash
+apt install php php-xml php-gd php-mysqli php-dom php-cli php-zip unzip php-curl composer
 
-#### 重复安装(保留上一次数据)
+cd QingScan/code && composer install  
+```
 
-1. 使用数据库管理软件,导出之前的数据为SQL文件(不要表结构,只需要数据部分)
-2. 重新安装一次qingscan
-3. 将导出的SQL文件的,覆盖到现在的数据库(再次提醒,不要表结构,只需要数据部分)
+2. 用PHP启动项目web页面
 
-## 支持支持
+```bash
+php think run -p 80
+```
 
-QingScan尽最大能力保障各位使用的顺畅，但QingScan人力有限，目前仍然无法预料到每一处场景，希望您尽量按照视频教程中的环境来搭建和使用；
+3. 新建数据库，并导入数据表，SQL文件在`deploy`下的`qingscan.sql`
 
-如果在安装或使用的过程中遇到任何问题，也可以联系我们的工程师远程协助帮你解决问题(需淘宝下单`18.8`元人民币),下单后主动添加群里`婷婷的橙子`为好友，并将向日葵的ID和验证码发给她。
+4. 访问web页面
 
-淘宝链接地址：https://item.taobao.com/item.htm?spm=a2126o.success.0.0.5e484831UkSn6H&id=666295567386&mt=
-![QingScan 远程协助安装二维码](https://user-images.githubusercontent.com/8509054/170407026-ab399c52-37a6-4ebe-8e96-31fe61ae4b32.png)
+```bash
+http://127.0.0.1/
+```
+ 
+5. 启动调用脚本
 
+```bash
+./script.sh
+```
 
-## 靶场系统
+## 技术支持
 
-您在安装之后请不要对未获得足够授权的目标进行扫描，同时为了让你能够快速上手，我们搭建了一些靶场系统授权你进行安全扫描：
-1. http://permeate.qingscan.site/  轻松渗透测试系统测试
-
+QingScan提供私人订制服务,如果你二次开发需求,可以联系我微信 `songboy8888`
 
 ## 联系我
 
@@ -60,20 +53,13 @@ QingScan尽最大能力保障各位使用的顺畅，但QingScan人力有限，�
 
 
 ## 功能展示
-![image](https://user-images.githubusercontent.com/8509054/143174877-879408de-e594-4508-aa7c-b2fe095382cb.png)
+![](https://oss.songboy.site/blog/20240617224644.png)
 
-![image](https://user-images.githubusercontent.com/8509054/143174979-f93bab2f-1506-4b01-9a2c-888a1c377478.png)
+![](https://oss.songboy.site/blog/20240617224721.png)
 
-![image](https://user-images.githubusercontent.com/8509054/143175009-ceb5e762-4770-469e-827d-82937550d3a6.png)
+![](https://oss.songboy.site/blog/20240617224735.png)
 
-
-![image](https://user-images.githubusercontent.com/8509054/143175022-d7821199-ef11-4f5d-a7ac-76003bd3074f.png)
-
-![image](https://user-images.githubusercontent.com/8509054/143175091-91d04fea-0fa7-45ad-8f39-d8d77f816cbf.png)
-
-
-![image](https://user-images.githubusercontent.com/8509054/143175157-0934560b-5ed2-4ce8-bc9b-9faff19e3517.png)
-
+![](https://oss.songboy.site/blog/20240617224838.png)
 ## 📑 Licenses
 本工具禁止进行未授权商业用途，禁止二次开发后进行未授权商业用途。
 

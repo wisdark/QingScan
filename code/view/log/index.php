@@ -15,7 +15,7 @@ $searchArr = [
         ['text' => '清空日志',
             'ext' => [
                 "href" => url('log/clear_all'),
-                "class" => "btn btn-outline-danger"
+                "class" => "btn btn-sm btn-outline-danger"
             ]
         ]
     ]]; ?>
@@ -23,8 +23,8 @@ $searchArr = [
 <div class="col-md-12 ">
     <div class="row tuchu">
         <div class="col-md-12 ">
-            <table class="table table-bordered table-hover table-striped">
-                <thead>
+            <table class="table  table-hover table-sm table-borderless">
+                <thead class="table-light">
                 <tr>
                     <th>ID</th>
                     <th>项目名称</th>

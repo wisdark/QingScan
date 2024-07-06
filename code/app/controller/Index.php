@@ -20,7 +20,7 @@ class Index extends Common
         //黑盒项目数量
         $appCount = Db::table('app')->where($where)->count();
         //黑盒rad数量
-        $urlsCount = Db::table('urls')->where($where)->count();
+        $urlsCount = Db::table('asm_urls')->where($where)->count();
         //黑盒xray数量
         $xrayCount = Db::table('xray')->where($where)->count();
         //黑盒sqlmap数量
@@ -41,11 +41,11 @@ class Index extends Common
 
         ##########
         //资产探测
-        $hostCount = Db::table('host')->count();
+        $hostCount = Db::table('asm_host')->count();
         //端口数量
-        $portCount = Db::table('host_port')->count();
+        $portCount = Db::table('asm_host_port')->count();
         //服务数量
-        $serviceCount = Db::table('host_port')->group("service")->count();
+        $serviceCount = Db::table('asm_host_port')->group("service")->count();
         // 未授权漏洞
         $unauthorizedCount = Db::table('host_unauthorized')->count();
 
@@ -72,10 +72,10 @@ class Index extends Common
 
         $data = [
             [
-                "name" => "黑盒信息",
+                "name" => "网站扫描",
                 "value" => $appCount,
                 "subInfo" => [
-                    ["name" => "rad", "value" => $urlsCount, "href" => url('urls/index')],
+
                     ["name" => "xray", "value" => $xrayCount, "href" => url('xray/index')],
                     ["name" => "sqlmap", "value" => $sqlmapCount, "href" => url('sqlmap/index')],
                     ["name" => "awvs", "value" => $awvsCount, "href" => url('bug/awvs')],
@@ -83,13 +83,16 @@ class Index extends Common
                     ["name" => "nuclei", "value" => $nucleiCount, "href" => url('app_nuclei/index')],
                     ["name" => "dirmap", "value" => $dirmapCount, "href" => url('dirmap/index')],
                     ["name" => "whatweb", "value" => $whatwebCount, "href" => url('whatweb/index')],
-                    ["name" => "oneforall", "value" => $oneforallCount, "href" => url('one_for_all/index')],
+
                 ]
             ],
             [
                 "name" => "资产探测",
                 "value" => $hostCount,
                 "subInfo" => [
+                    ["name" => "主机", "value" => $hostCount, "href" => url('host_port/index')],
+                    ["name" => "子域名", "value" => $oneforallCount, "href" => url('one_for_all/index')],
+                    ["name" => "URL", "value" => $urlsCount, "href" => url('urls/index')],
                     ["name" => "port", "value" => $portCount, "href" => url('host_port/index')],
                     ["name" => "中间件", "value" => $serviceCount, "href" => url('host_port/index')],
                     ["name" => "未授权漏洞", "value" => $unauthorizedCount, "href" => url('unauthorized/index')],
@@ -102,20 +105,17 @@ class Index extends Common
                     ["name" => "fortify", "value" => $fortifyCount, "href" => url('code/bug_list')],
                     ["name" => "semgrep", "value" => $semgrepCount, "href" => url('code/semgrep_list')],
                     ["name" => "mobsfscan", "value" => $mobsfscanCount, "href" => url('mobsfscan/index')],
-                    ["name" => "murphysec", "value" => $murphysecCount, "href" => url('murphysec/index')],
+                    ["name" => "软件依赖", "value" => $murphysecCount, "href" => url('murphysec/index')],
                     ["name" => "webshell", "value" => $hemaCount, "href" => url('code_webshell/index')],
-                    ["name" => "php", "value" => $phpCount, "href" => url('code_composer/index')],
-                    ["name" => "python", "value" => $pythonCount, "href" => url('code_python/index')],
-                    ["name" => "java", "value" => $javaCount, "href" => url('code_java/index')],
                 ]
             ]
             , [
-                "name" => "漏洞站点",
+                "name" => "专项利用",
                 "value" => $pocsuite3Count,
                 "subInfo" => [
                     ["name" => "漏洞情报", "value" => $vulnerableCount, "href" => url('vulnerable/index')],
                     ["name" => "Poc脚本", "value" => $pocsCount, "href" => url('pocs_file/index')],
-                    ["name" => "可疑目标", "value" => $targetCount, "href" => url('vul_target/index')],
+                    ["name" => "漏洞数量", "value" => $targetCount, "href" => url('vul_target/index')],
                 ]
             ]
         ];
@@ -146,12 +146,12 @@ class Index extends Common
         $bugPaihang = array_slice($bugPaihang, 0, 10);
 
         //端口发现
-        $portCount = Db::table('host_port')->field('port as name,count(port) as value')->group('port')->select()->toArray();
+        $portCount = Db::table('asm_host_port')->field('port as name,count(port) as value')->group('port')->select()->toArray();
         array_multisort(array_column($portCount, 'value'), SORT_DESC, $portCount);
         $portCount = array_slice($portCount, 0, 10);
 
         //主机统计
-        $hostCount = Db::table('host_port')->field('host as name,count(host) as value')->group('host')->select()->toArray();
+        $hostCount = Db::table('asm_host_port')->field('host as name,count(host) as value')->group('host')->select()->toArray();
         array_multisort(array_column($hostCount, 'value'), SORT_DESC, $hostCount);
         $hostCount = array_slice($hostCount, 0, 10);
 
@@ -183,7 +183,7 @@ class Index extends Common
         if (!$result['code']) {
             return $this->apiReturn(0,[],'');
         }
-        $path = \think\facade\App::getRootPath() . '../docker/data/update.lock';
+        $path = \think\facade\App::getRootPath() . '../docker./data/update.lock';
         // 获取当前版本号
         $version = file_get_contents($path);
         $news_version = $result['data']['news_version'];

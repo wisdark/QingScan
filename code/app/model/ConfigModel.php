@@ -60,16 +60,7 @@ class ConfigModel extends BaseModel
     }
 
 
-    public static function getCrawlerInfo($crawlerId)
-    {
 
-        //查询具体数据,并刷新缓存
-        $result = self::getList(['id' => $crawlerId]);
-
-
-        return $result[0] ?? false;
-
-    }
 
     /**
      * @param  $where
@@ -191,8 +182,6 @@ class ConfigModel extends BaseModel
     // 备份数据库
     public static function backup()
     {
-        while (true) {
-            processSleep(1);
             $backup = config('app.backup');
             if (!file_exists($backup['path'])) {
                 mkdir($backup['path'], 0777, true);
@@ -212,7 +201,7 @@ class ConfigModel extends BaseModel
                 file_put_contents($filename, time());
             }
             if ($status) {
-                ini_set('max_execution_time', 0);
+
                 $db = new Backup($backup);
                 $time = time();
                 $file = ['name' => date('Ymd-His', $time), 'part' => 1];
@@ -220,9 +209,8 @@ class ConfigModel extends BaseModel
                     $db->setFile($file)->backup($v['name'], 0);
                 }
             }
-            addlog("数据库备份完成，休息3600秒");
-            sleep(3600);
-        }
+        addlog("数据库备份完成");
+
     }
 
     public static function value($key){
